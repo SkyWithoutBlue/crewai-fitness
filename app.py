@@ -25,8 +25,63 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Загружаем переменные окружения
-load_dotenv()
+# Загружаем п# Функция проверки авторизации (Логин + Пароль)
+def check_login():
+    """Возвращает True, если пользователь ввел правильный логин и пароль."""
+    
+    def login_clicked():
+        """Проверяет правильность введенных логина и пароля."""
+        # Логин и Пароль по умолчанию "nikitaludmila", но можно переопределить через Secrets или .env
+        correct_username = st.secrets.get("APP_USERNAME", os.getenv("APP_USERNAME", "nikitaludmila"))
+        correct_password = st.secrets.get("APP_PASSWORD", os.getenv("APP_PASSWORD", "nikitaludmila"))
+        
+        if (st.session_state["login_username"] == correct_username and 
+            st.session_state["login_password"] == correct_password):
+            st.session_state["logged_in"] = True
+            # Очищаем пароль и логин из состояния для безопасности
+            del st.session_state["login_username"]
+            del st.session_state["login_password"]
+        else:
+            st.session_state["logged_in"] = False
+
+    if "logged_in" not in st.session_state or not st.session_state["logged_in"]:
+        # Выводим премиальный экран авторизации строго в стиле бренда (Outfit шрифт, песочно-графитовые тона)
+        st.markdown("""
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 30px; text-align: center; max-width: 500px; margin: 100px auto 25px auto; background: #FFFFFF; border-radius: 16px; border: 1px solid #E5E5E5; box-shadow: 0 10px 30px rgba(0,0,0,0.03);">
+            <div style="font-size: 56px; margin-bottom: 25px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.05));">🔐</div>
+            <h2 style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #2C2C2C; margin: 0 0 10px 0; letter-spacing: -0.5px; font-size: 26px;">Авторизация</h2>
+            <p style="font-family: 'Outfit', sans-serif; color: #7A6D6B; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5; font-weight: 400;">Введите ваши учетные данные для доступа к ИИ-продюсерам Людмилы Чипизубовой.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Инпуты ввода логина и пароля по центру страницы
+        col1, col2, col3 = st.columns([1, 1.8, 1])
+        with col2:
+            st.text_input(
+                "Имя пользователя (Логин)",
+                key="login_username",
+                placeholder="Логин..."
+            )
+            st.text_input(
+                "Пароль",
+                type="password",
+                key="login_password",
+                placeholder="Пароль..."
+            )
+            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+            st.button("Войти в систему 🚀", use_container_width=True, on_click=login_clicked)
+            
+            if "logged_in" in st.session_state and not st.session_state["logged_in"]:
+                st.error("😕 Неверный логин или пароль. Попробуйте еще раз.")
+        return False
+        
+    return True
+
+# Останавливаем выполнение приложения, если пользователь не авторизован
+if not check_login():
+    st.stop()  
+
 
 def clean_html(text):
     if not text:
@@ -389,6 +444,11 @@ st.markdown("Добро пожаловать в интеллектуальный
 # Боковая панель с настройками
 st.sidebar.image("https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80", use_container_width=True)
 st.sidebar.title("⚙️ Настройки ИИ-продюсера")
+
+# Кнопка безопасного выхода из системы
+if st.sidebar.button("🔒 Выйти из системы", use_container_width=True):
+    st.session_state["logged_in"] = False
+    st.rerun()
 
 # Управление API-ключом
 env_key = os.getenv("GEMINI_API_KEY", "")
