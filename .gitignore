@@ -1,0 +1,28 @@
+# Python virtual environments
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+
+# Local Credentials & Secrets (CRITICAL)
+.env
+.env.example
+
+# Local databases & histories
+content_calendar.json
+generation_history.json
+
+# Generated temporary reports & visual assets
+temp_*.md
+instagram_post_result.md
+reels_brainstorm_result.md
+reels_recipe_result.md
+hooks_test_result.md
+stories_warmup_result.md
+live_stream_result.md
+reels_cover_image.png
+lead_magnet_guide.pdf
+lead_magnet_guide.svg
+model_test_results.txt
+temp_*.pdf
