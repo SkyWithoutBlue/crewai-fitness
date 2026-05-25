@@ -624,7 +624,7 @@ with generator_tab:
             )
             st.session_state["app_topic_full"] = topic
 
-    elif mode == "💡 Брейншторм 10 вирусных идей для Reels":
+        elif mode == "💡 Брейншторм 10 вирусных идей для Reels":
             topic = st.text_area(
                 "Ниша или основное направление для брейншторма:",
                 value=st.session_state["app_topic_brainstorm"],
@@ -933,111 +933,7 @@ with generator_tab:
                         
                         tasks_list = [research_task, writing_task, reels_task]
 
-                    elif mode == "🔥 Психологический прогрев для Stories (Запуск фитнес-курса)":
-        tabs = st.tabs([
-            "🔥 5-дневный Stories Прогрев", 
-            "🎬 Поддерживающий Reels", 
-            "🔬 Анализ возражений ЦА"
-        ])
-        
-        with tabs[0]:
-            st.markdown("### 🔥 Пошаговый 5-дневный Stories-прогрев")
-            st.markdown(post_data if post_data else "Сценарий прогрева отсутствует")
-            
-            st.markdown("---")
-            with st.expander("📅 Запланировать этот Stories-прогрев в Календарь"):
-                col_cs1, col_cs2 = st.columns(2)
-                with col_cs1:
-                    cs_day = st.selectbox("День публикации:", ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"], key="cal_stories_day")
-                with col_cs2:
-                    cs_time = st.text_input("Время публикации (ЧЧ:ММ):", value="12:00", key="cal_stories_time")
-                if st.button("📅 Сохранить Stories в календарь", use_container_width=True):
-                    import uuid
-                    events = load_calendar()
-                    new_event = {
-                        "id": str(uuid.uuid4()),
-                        "title": f"Stories Прогрев: {topic[:30]}...",
-                        "day": cs_day,
-                        "time": cs_time,
-                        "type": "📝 Stories Прогрев",
-                        "content": post_data
-                    }
-                    events.append(new_event)
-                    save_calendar(events)
-                    st.success("Прогрев успешно запланирован в контент-календарь! 📅")
-            
-            if post_data:
-                st.download_button("📥 Скачать Stories-прогрев (.md)", data=post_data, file_name="stories_warmup.md", use_container_width=True)
-                
-        with tabs[1]:
-            st.markdown("### 🎬 Поддерживающий Reels сценарий")
-            st.markdown(reels_data if reels_data else "Сценарий Reels отсутствует")
-            if reels_data:
-                st.download_button("📥 Скачать Reels (.md)", data=reels_data, file_name="stories_promo_reels.md", use_container_width=True)
-                
-        with tabs[2]:
-            st.markdown("### 🔬 Анализ возражений и барьеров ЦА")
-            st.markdown(report_data if report_data else "Анализ возражений отсутствует")
-            if report_data:
-                st.download_button("📥 Скачать анализ ЦА (.md)", data=report_data, file_name="psychological_analysis.md", use_container_width=True)
-                
-        full_result = f"# Психологический прогрев Stories\n\n## 1. Stories Прогрев\n{post_data}\n\n## 2. Поддерживающий Reels\n{reels_data}\n\n## 3. Анализ возражений ЦА\n{report_data}"
-        with open("stories_warmup_result.md", "w", encoding="utf-8") as f:
-            f.write(full_result)
-
-    elif mode == "🗣️ Сценарий Продающего Прямого Эфира / Вебинара":
-        tabs = st.tabs([
-            "🗣️ Сценарий Эфира (45 мин)", 
-            "🎬 Промо-Reels эфира", 
-            "🔬 Тезисы и удержание внимания"
-        ])
-        
-        with tabs[0]:
-            st.markdown("### 🗣️ Поминутный сценарий прямого эфира")
-            st.markdown(post_data if post_data else "Сценарий эфира отсутствует")
-            
-            st.markdown("---")
-            with st.expander("📅 Запланировать эфир в Календарь"):
-                col_cl1, col_cl2 = st.columns(2)
-                with col_cl1:
-                    cl_day = st.selectbox("День трансляции:", ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"], key="cal_live_day")
-                with col_cl2:
-                    cl_time = st.text_input("Время эфира (ЧЧ:ММ):", value="12:00", key="cal_live_time")
-                if st.button("📅 Сохранить эфир в календарь", use_container_width=True):
-                    import uuid
-                    events = load_calendar()
-                    new_event = {
-                        "id": str(uuid.uuid4()),
-                        "title": f"Живой Эфир: {topic[:30]}...",
-                        "day": cl_day,
-                        "time": cl_time,
-                        "type": "🎙️ Прямой эфир",
-                        "content": post_data
-                    }
-                    events.append(new_event)
-                    save_calendar(events)
-                    st.success("Эфир успешно запланирован в контент-календарь! 📅")
-            
-            if post_data:
-                st.download_button("📥 Скачать сценарий эфира (.md)", data=post_data, file_name="live_stream_script.md", use_container_width=True)
-                
-        with tabs[1]:
-            st.markdown("### 🎬 Промо-Reels сценарий")
-            st.markdown(reels_data if reels_data else "Сценарий Reels отсутствует")
-            if reels_data:
-                st.download_button("📥 Скачать Reels (.md)", data=reels_data, file_name="live_promo_reels.md", use_container_width=True)
-                
-        with tabs[2]:
-            st.markdown("### 🔬 Тезисы и триггеры удержания внимания")
-            st.markdown(report_data if report_data else "Анализ удержания отсутствует")
-            if report_data:
-                st.download_button("📥 Скачать анализ удержания (.md)", data=report_data, file_name="live_thesis_analysis.md", use_container_width=True)
-                
-        full_result = f"# Сценарий Продающего Эфира\n\n## 1. Сценарий Эфира\n{post_data}\n\n## 2. Промо-Reels\n{reels_data}\n\n## 3. Тезисы и удержание\n{report_data}"
-        with open("live_stream_result.md", "w", encoding="utf-8") as f:
-            f.write(full_result)
-
-    elif mode == "💡 Брейншторм 10 вирусных идей для Reels":
+                    elif mode == "💡 Брейншторм 10 вирусных идей для Reels":
                         # Режим Брейншторма!
                         research_task = Task(
                             description=(
@@ -1768,110 +1664,110 @@ with generator_tab:
                 f.write(full_result)
 
         elif mode == "🔥 Психологический прогрев для Stories (Запуск фитнес-курса)":
-        tabs = st.tabs([
-            "🔥 5-дневный Stories Прогрев", 
-            "🎬 Поддерживающий Reels", 
-            "🔬 Анализ возражений ЦА"
-        ])
-        
-        with tabs[0]:
-            st.markdown("### 🔥 Пошаговый 5-дневный Stories-прогрев")
-            st.markdown(post_data if post_data else "Сценарий прогрева отсутствует")
+            tabs = st.tabs([
+                "🔥 5-дневный Stories Прогрев", 
+                "🎬 Поддерживающий Reels", 
+                "🔬 Анализ возражений ЦА"
+            ])
             
-            st.markdown("---")
-            with st.expander("📅 Запланировать этот Stories-прогрев в Календарь"):
-                col_cs1, col_cs2 = st.columns(2)
-                with col_cs1:
-                    cs_day = st.selectbox("День публикации:", ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"], key="cal_stories_day")
-                with col_cs2:
-                    cs_time = st.text_input("Время публикации (ЧЧ:ММ):", value="12:00", key="cal_stories_time")
-                if st.button("📅 Сохранить Stories в календарь", use_container_width=True):
-                    import uuid
-                    events = load_calendar()
-                    new_event = {
-                        "id": str(uuid.uuid4()),
-                        "title": f"Stories Прогрев: {topic[:30]}...",
-                        "day": cs_day,
-                        "time": cs_time,
-                        "type": "📝 Stories Прогрев",
-                        "content": post_data
-                    }
-                    events.append(new_event)
-                    save_calendar(events)
-                    st.success("Прогрев успешно запланирован в контент-календарь! 📅")
-            
-            if post_data:
-                st.download_button("📥 Скачать Stories-прогрев (.md)", data=post_data, file_name="stories_warmup.md", use_container_width=True)
+            with tabs[0]:
+                st.markdown("### 🔥 Пошаговый 5-дневный Stories-прогрев")
+                st.markdown(post_data if post_data else "Сценарий прогрева отсутствует")
                 
-        with tabs[1]:
-            st.markdown("### 🎬 Поддерживающий Reels сценарий")
-            st.markdown(reels_data if reels_data else "Сценарий Reels отсутствует")
-            if reels_data:
-                st.download_button("📥 Скачать Reels (.md)", data=reels_data, file_name="stories_promo_reels.md", use_container_width=True)
+                st.markdown("---")
+                with st.expander("📅 Запланировать этот Stories-прогрев в Календарь"):
+                    col_cs1, col_cs2 = st.columns(2)
+                    with col_cs1:
+                        cs_day = st.selectbox("День публикации:", ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"], key="cal_stories_day")
+                    with col_cs2:
+                        cs_time = st.text_input("Время публикации (ЧЧ:ММ):", value="12:00", key="cal_stories_time")
+                    if st.button("📅 Сохранить Stories в календарь", use_container_width=True):
+                        import uuid
+                        events = load_calendar()
+                        new_event = {
+                            "id": str(uuid.uuid4()),
+                            "title": f"Stories Прогрев: {topic[:30]}...",
+                            "day": cs_day,
+                            "time": cs_time,
+                            "type": "📝 Stories Прогрев",
+                            "content": post_data
+                        }
+                        events.append(new_event)
+                        save_calendar(events)
+                        st.success("Прогрев успешно запланирован в контент-календарь! 📅")
                 
-        with tabs[2]:
-            st.markdown("### 🔬 Анализ возражений и барьеров ЦА")
-            st.markdown(report_data if report_data else "Анализ возражений отсутствует")
-            if report_data:
-                st.download_button("📥 Скачать анализ ЦА (.md)", data=report_data, file_name="psychological_analysis.md", use_container_width=True)
+                if post_data:
+                    st.download_button("📥 Скачать Stories-прогрев (.md)", data=post_data, file_name="stories_warmup.md", use_container_width=True)
                 
-        full_result = f"# Психологический прогрев Stories\n\n## 1. Stories Прогрев\n{post_data}\n\n## 2. Поддерживающий Reels\n{reels_data}\n\n## 3. Анализ возражений ЦА\n{report_data}"
-        with open("stories_warmup_result.md", "w", encoding="utf-8") as f:
-            f.write(full_result)
+            with tabs[1]:
+                st.markdown("### 🎬 Поддерживающий Reels сценарий")
+                st.markdown(reels_data if reels_data else "Сценарий Reels отсутствует")
+                if reels_data:
+                    st.download_button("📥 Скачать Reels (.md)", data=reels_data, file_name="stories_promo_reels.md", use_container_width=True)
+                    
+            with tabs[2]:
+                st.markdown("### 🔬 Анализ возражений и барьеров ЦА")
+                st.markdown(report_data if report_data else "Анализ возражений отсутствует")
+                if report_data:
+                    st.download_button("📥 Скачать анализ ЦА (.md)", data=report_data, file_name="psychological_analysis.md", use_container_width=True)
+                    
+            full_result = f"# Психологический прогрев Stories\n\n## 1. Stories Прогрев\n{post_data}\n\n## 2. Поддерживающий Reels\n{reels_data}\n\n## 3. Анализ возражений ЦА\n{report_data}"
+            with open("stories_warmup_result.md", "w", encoding="utf-8") as f:
+                f.write(full_result)
 
-    elif mode == "🗣️ Сценарий Продающего Прямого Эфира / Вебинара":
-        tabs = st.tabs([
-            "🗣️ Сценарий Эфира (45 мин)", 
-            "🎬 Промо-Reels эфира", 
-            "🔬 Тезисы и удержание внимания"
-        ])
-        
-        with tabs[0]:
-            st.markdown("### 🗣️ Поминутный сценарий прямого эфира")
-            st.markdown(post_data if post_data else "Сценарий эфира отсутствует")
+        elif mode == "🗣️ Сценарий Продающего Прямого Эфира / Вебинара":
+            tabs = st.tabs([
+                "🗣️ Сценарий Эфира (45 мин)", 
+                "🎬 Промо-Reels эфира", 
+                "🔬 Тезисы и удержание внимания"
+            ])
             
-            st.markdown("---")
-            with st.expander("📅 Запланировать эфир в Календарь"):
-                col_cl1, col_cl2 = st.columns(2)
-                with col_cl1:
-                    cl_day = st.selectbox("День трансляции:", ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"], key="cal_live_day")
-                with col_cl2:
-                    cl_time = st.text_input("Время эфира (ЧЧ:ММ):", value="12:00", key="cal_live_time")
-                if st.button("📅 Сохранить эфир в календарь", use_container_width=True):
-                    import uuid
-                    events = load_calendar()
-                    new_event = {
-                        "id": str(uuid.uuid4()),
-                        "title": f"Живой Эфир: {topic[:30]}...",
-                        "day": cl_day,
-                        "time": cl_time,
-                        "type": "🎙️ Прямой эфир",
-                        "content": post_data
-                    }
-                    events.append(new_event)
-                    save_calendar(events)
-                    st.success("Эфир успешно запланирован в контент-календарь! 📅")
-            
-            if post_data:
-                st.download_button("📥 Скачать сценарий эфира (.md)", data=post_data, file_name="live_stream_script.md", use_container_width=True)
+            with tabs[0]:
+                st.markdown("### 🗣️ Поминутный сценарий прямого эфира")
+                st.markdown(post_data if post_data else "Сценарий эфира отсутствует")
                 
-        with tabs[1]:
-            st.markdown("### 🎬 Промо-Reels сценарий")
-            st.markdown(reels_data if reels_data else "Сценарий Reels отсутствует")
-            if reels_data:
-                st.download_button("📥 Скачать Reels (.md)", data=reels_data, file_name="live_promo_reels.md", use_container_width=True)
+                st.markdown("---")
+                with st.expander("📅 Запланировать эфир в Календарь"):
+                    col_cl1, col_cl2 = st.columns(2)
+                    with col_cl1:
+                        cl_day = st.selectbox("День трансляции:", ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"], key="cal_live_day")
+                    with col_cl2:
+                        cl_time = st.text_input("Время эфира (ЧЧ:ММ):", value="12:00", key="cal_live_time")
+                    if st.button("📅 Сохранить эфир в календарь", use_container_width=True):
+                        import uuid
+                        events = load_calendar()
+                        new_event = {
+                            "id": str(uuid.uuid4()),
+                            "title": f"Живой Эфир: {topic[:30]}...",
+                            "day": cl_day,
+                            "time": cl_time,
+                            "type": "🎙️ Прямой эфир",
+                            "content": post_data
+                        }
+                        events.append(new_event)
+                        save_calendar(events)
+                        st.success("Эфир успешно запланирован в контент-календарь! 📅")
                 
-        with tabs[2]:
-            st.markdown("### 🔬 Тезисы и триггеры удержания внимания")
-            st.markdown(report_data if report_data else "Анализ удержания отсутствует")
-            if report_data:
-                st.download_button("📥 Скачать анализ удержания (.md)", data=report_data, file_name="live_thesis_analysis.md", use_container_width=True)
+                if post_data:
+                    st.download_button("📥 Скачать сценарий эфира (.md)", data=post_data, file_name="live_stream_script.md", use_container_width=True)
                 
-        full_result = f"# Сценарий Продающего Эфира\n\n## 1. Сценарий Эфира\n{post_data}\n\n## 2. Промо-Reels\n{reels_data}\n\n## 3. Тезисы и удержание\n{report_data}"
-        with open("live_stream_result.md", "w", encoding="utf-8") as f:
-            f.write(full_result)
+            with tabs[1]:
+                st.markdown("### 🎬 Промо-Reels сценарий")
+                st.markdown(reels_data if reels_data else "Сценарий Reels отсутствует")
+                if reels_data:
+                    st.download_button("📥 Скачать Reels (.md)", data=reels_data, file_name="live_promo_reels.md", use_container_width=True)
+                    
+            with tabs[2]:
+                st.markdown("### 🔬 Тезисы и триггеры удержания внимания")
+                st.markdown(report_data if report_data else "Анализ удержания отсутствует")
+                if report_data:
+                    st.download_button("📥 Скачать анализ удержания (.md)", data=report_data, file_name="live_thesis_analysis.md", use_container_width=True)
+                    
+            full_result = f"# Сценарий Продающего Эфира\n\n## 1. Сценарий Эфира\n{post_data}\n\n## 2. Промо-Reels\n{reels_data}\n\n## 3. Тезисы и удержание\n{report_data}"
+            with open("live_stream_result.md", "w", encoding="utf-8") as f:
+                f.write(full_result)
 
-    elif mode == "💡 Брейншторм 10 вирусных идей для Reels":
+        elif mode == "💡 Брейншторм 10 вирусных идей для Reels":
             tabs = st.tabs([
                 "💡 10 вирусных идей Reels", 
                 "🔬 Полный отчет исследований"
