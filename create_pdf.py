@@ -518,7 +518,7 @@ def generate_dynamic_pdf(title="БЕРЕЖНОЕ ПРЕОБРАЖЕНИЕ", subt
             
         if line.startswith("# "):
             header_text = line[2:].strip()
-            if pdf.page_no() > 2 or pdf.get_y() > 30:
+            if pdf.page_no() > 2 and pdf.get_y() > 60:
                 pdf.add_page()
             pdf.set_x(pdf.l_margin)
             pdf.set_font('Arial', 'B', 16)
