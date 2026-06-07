@@ -107,8 +107,9 @@ def draw_brand_logo(pdf, x, y):
 
 def generate_guide_pdf():
     pdf = PremiumPDF(orientation='P', unit='mm', format='A4')
-    pdf.set_margins(20, 20, 20)
-    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf.set_margins(15, 15, 15)
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.c_margin = 1
     
     # Подключение шрифтов с кроссплатформенной поддержкой (Windows + Linux/Streamlit Cloud)
     setup_pdf_fonts(pdf)
@@ -134,14 +135,14 @@ def generate_guide_pdf():
     pdf.cell(0, 6, clean_text("ЛЮДМИЛА ЧИПИЗУБОВА  |  АВТОРСКИЙ ГАЙД"), 0, 1, 'C')
     pdf.ln(8)
     
-    # Главный заголовок (H1: 32pt, Bold, PRIMARY_DARKER #1A1A1A)
-    pdf.set_font('Arial', 'B', 32)
+    # Главный заголовок (адаптировано для DejaVuSans)
+    pdf.set_font('Arial', 'B', 24)
     pdf.set_text_color(*c_darker)
-    pdf.multi_cell(0, 13, clean_text("БЕРЕЖНОЕ\nПРЕОБРАЖЕНИЕ"), 0, 'C')
+    pdf.multi_cell(0, 11, clean_text("БЕРЕЖНОЕ\nПРЕОБРАЖЕНИЕ"), 0, 'C')
     pdf.ln(10)
     
-    # Подзаголовок (Hero subtitle: 13pt, TEXT_MUTED #6B6B6B)
-    pdf.set_font('Arial', '', 13)
+    # Подзаголовок
+    pdf.set_font('Arial', '', 11)
     pdf.set_text_color(*c_text_muted)
     subtitle_text = clean_text("Как вернуть упругость ягодиц и плоский живот без жестких диет, изнуряющих тренировок и насилия над собой")
     pdf.multi_cell(0, 7.5, subtitle_text, 0, 'C')
@@ -165,8 +166,8 @@ def generate_guide_pdf():
     pdf.add_page()
     pdf.set_text_color(*c_dark)
     
-    # H2 Заголовок секции (48px / 20pt в PDF, Bold, #2C2C2C)
-    pdf.set_font('Arial', 'B', 20)
+    # H2 Заголовок секции
+    pdf.set_font('Arial', 'B', 16)
     pdf.set_text_color(*c_dark)
     pdf.cell(0, 10, clean_text("Привет, моя дорогая!"), 0, 1, 'L')
     pdf.ln(5)
@@ -199,7 +200,7 @@ def generate_guide_pdf():
     pdf.ln(10)
 
     # --- ЧАСТЬ 1 ---
-    pdf.set_font('Arial', 'B', 15)
+    pdf.set_font('Arial', 'B', 13)
     pdf.set_text_color(*c_accent_dark)
     pdf.cell(0, 8, clean_text("ЧАСТЬ 1. Почему попа теряет форму: разгадка"), 0, 1, 'L')
     pdf.cell(0, 8, clean_text('"сонных ягодиц"'), 0, 1, 'L')
@@ -267,7 +268,7 @@ def generate_guide_pdf():
     pdf.ln(10)
     
     # ЧАСТЬ 2
-    pdf.set_font('Arial', 'B', 15)
+    pdf.set_font('Arial', 'B', 13)
     pdf.set_text_color(*c_accent_dark)
     pdf.cell(0, 8, clean_text("ЧАСТЬ 2. Почему растет живот: феномен"), 0, 1, 'L')
     pdf.cell(0, 8, clean_text('"кортизолового животика"'), 0, 1, 'L')
@@ -312,7 +313,7 @@ def generate_guide_pdf():
     pdf.ln(10)
     
     # ЧАСТЬ 3
-    pdf.set_font('Arial', 'B', 15)
+    pdf.set_font('Arial', 'B', 13)
     pdf.set_text_color(*c_accent_dark)
     pdf.cell(0, 8, clean_text("ЧАСТЬ 3. Живот, который торчит даже у худых:"), 0, 1, 'L')
     pdf.cell(0, 8, clean_text("восстанавливаем микробиом"), 0, 1, 'L')
@@ -352,7 +353,7 @@ def generate_guide_pdf():
     pdf.ln(10)
     
     # ПОШАГОВЫЙ ПЛАН
-    pdf.set_font('Arial', 'B', 15)
+    pdf.set_font('Arial', 'B', 13)
     pdf.set_text_color(*c_accent_dark)
     pdf.cell(0, 8, clean_text("ТВОЙ ПОШАГОВЫЙ ПЛАН НА НЕДЕЛЮ"), 0, 1, 'L')
     pdf.set_text_color(*c_dark)
@@ -374,7 +375,7 @@ def generate_guide_pdf():
 
     # --- СТРАНИЦА 6: ЗАКЛЮЧЕНИЕ & CTA-КАРТОЧКА (rounded-3xl = 24px/8mm) ---
     pdf.add_page()
-    pdf.set_font('Arial', 'B', 15)
+    pdf.set_font('Arial', 'B', 13)
     pdf.set_text_color(*c_accent_dark)
     pdf.cell(0, 8, clean_text("Твое путешествие только начинается..."), 0, 1, 'L')
     pdf.set_text_color(*c_dark)
@@ -450,34 +451,41 @@ def generate_guide_pdf():
 
 def generate_dynamic_pdf(title="БЕРЕЖНОЕ ПРЕОБРАЖЕНИЕ", subtitle="Как вернуть упругость ягодиц и плоский живот...", markdown_content="", website="https://chipizubova.online", keyword="УВЕРЕННОСТЬ", output_filename="lead_magnet_guide.pdf"):
     pdf = PremiumPDF(orientation='P', unit='mm', format='A4')
-    pdf.set_margins(20, 20, 20)
-    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf.set_margins(15, 15, 15)  # Чуть шире для совместимости с DejaVuSans
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.c_margin = 1  # Уменьшаем внутренний отступ ячеек (по умолчанию 2)
     
     setup_pdf_fonts(pdf)
+
+    W = 210  # Ширина A4
+    CONTENT_W = W - 30  # 180mm доступная ширина
 
     # --- СТРАНИЦА 1: ОБЛОЖКА ---
     pdf.add_page()
     pdf.set_fill_color(*c_bg_app)
-    pdf.rect(0, 0, 210, 297, 'F')
+    pdf.rect(0, 0, W, 297, 'F')
     
     pdf.ln(25)
-    logo_x = (210 - 25) / 2
+    logo_x = (W - 25) / 2
     draw_brand_logo(pdf, logo_x, pdf.get_y())
     pdf.ln(38)
     
-    pdf.set_font('Arial', 'B', 10)
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('Arial', 'B', 9)
     pdf.set_text_color(*c_accent_dark)
-    pdf.cell(0, 6, clean_text("ЛЮДМИЛА ЧИПИЗУБОВА  |  ИНДИВИДУАЛЬНЫЙ ГАЙД"), 0, 1, 'C')
+    pdf.cell(CONTENT_W, 6, clean_text("ЛЮДМИЛА ЧИПИЗУБОВА  |  ИНДИВИДУАЛЬНЫЙ ГАЙД"), 0, 1, 'C')
     pdf.ln(8)
     
-    pdf.set_font('Arial', 'B', 24)
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('Arial', 'B', 20)
     pdf.set_text_color(*c_darker)
-    pdf.multi_cell(0, 11, clean_text(title.upper()), 0, 'C')
+    pdf.multi_cell(CONTENT_W, 10, clean_text(title.upper()), 0, 'C')
     pdf.ln(10)
     
-    pdf.set_font('Arial', '', 12)
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('Arial', '', 11)
     pdf.set_text_color(*c_text_muted)
-    pdf.multi_cell(0, 7, clean_text(subtitle), 0, 'C')
+    pdf.multi_cell(CONTENT_W, 6.5, clean_text(subtitle), 0, 'C')
     
     pdf.ln(20)
     pdf.set_draw_color(*c_accent)
@@ -485,12 +493,14 @@ def generate_dynamic_pdf(title="БЕРЕЖНОЕ ПРЕОБРАЖЕНИЕ", subt
     pdf.line(85, pdf.get_y(), 125, pdf.get_y())
     
     pdf.set_y(-40)
-    pdf.set_font('Arial', 'B', 10)
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('Arial', 'B', 9)
     pdf.set_text_color(*c_accent)
-    pdf.cell(0, 6, clean_text("СИЛЬНОЕ ТЕЛО. УВЕРЕННЫЙ ДУХ."), 0, 1, 'C')
-    pdf.set_font('Arial', '', 10)
+    pdf.cell(CONTENT_W, 6, clean_text("СИЛЬНОЕ ТЕЛО. УВЕРЕННЫЙ ДУХ."), 0, 1, 'C')
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('Arial', '', 9)
     pdf.set_text_color(*c_text_light)
-    pdf.cell(0, 6, clean_text(website.replace("https://", "").replace("http://", "")), 0, 1, 'C')
+    pdf.cell(CONTENT_W, 6, clean_text(website.replace("https://", "").replace("http://", "")), 0, 1, 'C')
 
     # --- СТРАНИЦЫ КОНТЕНТА ---
     pdf.add_page()
@@ -503,100 +513,113 @@ def generate_dynamic_pdf(title="БЕРЕЖНОЕ ПРЕОБРАЖЕНИЕ", subt
         if not line:
             pdf.ln(4)
             continue
+        
+        pdf.set_x(pdf.l_margin)
             
         if line.startswith("# "):
             header_text = line[2:].strip()
             if pdf.page_no() > 2 or pdf.get_y() > 30:
                 pdf.add_page()
-            pdf.set_font('Arial', 'B', 18)
+            pdf.set_x(pdf.l_margin)
+            pdf.set_font('Arial', 'B', 16)
             pdf.set_text_color(*c_darker)
-            pdf.multi_cell(0, 8, clean_text(header_text), 0, 'L')
+            pdf.multi_cell(CONTENT_W, 8, clean_text(header_text), 0, 'L')
             pdf.ln(4)
         elif line.startswith("## "):
             header_text = line[3:].strip()
             if pdf.get_y() > 220:
                 pdf.add_page()
             pdf.ln(4)
-            pdf.set_font('Arial', 'B', 14)
+            pdf.set_x(pdf.l_margin)
+            pdf.set_font('Arial', 'B', 13)
             pdf.set_text_color(*c_accent_dark)
-            pdf.multi_cell(0, 7.5, clean_text(header_text), 0, 'L')
+            pdf.multi_cell(CONTENT_W, 7, clean_text(header_text), 0, 'L')
             pdf.ln(3)
         elif line.startswith("### "):
             header_text = line[4:].strip()
             if pdf.get_y() > 230:
                 pdf.add_page()
             pdf.ln(3)
-            pdf.set_font('Arial', 'B', 12)
+            pdf.set_x(pdf.l_margin)
+            pdf.set_font('Arial', 'B', 11)
             pdf.set_text_color(*c_accent_dark)
-            pdf.multi_cell(0, 6.5, clean_text(header_text), 0, 'L')
+            pdf.multi_cell(CONTENT_W, 6, clean_text(header_text), 0, 'L')
             pdf.ln(2)
         elif line.startswith("* ") or line.startswith("- "):
-            pdf.set_font('Arial', '', 10.5)
+            pdf.set_font('Arial', '', 10)
             pdf.set_text_color(*c_text_muted)
-            pdf.multi_cell(0, 6, clean_text(f"  •  {line[2:]}"), 0, 'L')
-        elif line.startswith("1. ") or line.startswith("2. ") or line.startswith("3. ") or line.startswith("4. ") or line.startswith("5. "):
-            pdf.set_font('Arial', '', 10.5)
+            pdf.multi_cell(CONTENT_W, 5.5, clean_text(f"  {line[2:]}"), 0, 'L')
+        elif len(line) > 2 and line[0].isdigit() and line[1] in '.':
+            pdf.set_font('Arial', '', 10)
             pdf.set_text_color(*c_text_muted)
-            pdf.multi_cell(0, 6, clean_text(line), 0, 'L')
+            pdf.multi_cell(CONTENT_W, 5.5, clean_text(line), 0, 'L')
         else:
-            pdf.set_font('Arial', '', 10.5)
+            pdf.set_font('Arial', '', 10)
             pdf.set_text_color(*c_text_muted)
-            pdf.multi_cell(0, 6, clean_text(line), 0, 'L')
+            pdf.multi_cell(CONTENT_W, 5.5, clean_text(line), 0, 'L')
 
-    # --- СТРАНИЦА ЗАКЛЮЧЕНИЯ И СТА ---
+    # --- СТРАНИЦА ЗАКЛЮЧЕНИЯ И CTA ---
     if pdf.get_y() > 180:
         pdf.add_page()
     else:
         pdf.ln(10)
         
     start_y = pdf.get_y()
+    card_w = CONTENT_W
+    card_x = pdf.l_margin
     
     pdf.set_fill_color(*c_bg_app)
     pdf.set_draw_color(*c_accent)
     pdf.set_line_width(0.5)
-    pdf.rect(20, start_y, 170, 66, 'DF', round_corners=True, corner_radius=8)
+    pdf.rect(card_x, start_y, card_w, 66, 'DF', round_corners=True, corner_radius=8)
     
     pdf.set_y(start_y + 4)
-    pdf.set_font('Arial', 'B', 11)
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('Arial', 'B', 10)
     pdf.set_text_color(*c_accent_dark)
-    pdf.cell(0, 6, clean_text("ХОЧЕШЬ БЕРЕЖНОГО ПРЕОБРАЖЕНИЯ?"), 0, 1, 'C')
+    pdf.cell(CONTENT_W, 6, clean_text("ХОЧЕШЬ БЕРЕЖНОГО ПРЕОБРАЖЕНИЯ?"), 0, 1, 'C')
     pdf.ln(2)
     
-    pdf.set_font('Arial', '', 10)
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('Arial', '', 9)
     pdf.set_text_color(*c_dark)
     cta_bullets = (f"- Получи пошаговую программу тренировок под свой уровень;\n"
                    f"- Питайся вкусно и разнообразно, снижая вес без жестких диет;\n"
                    f"- Напиши кодовое слово '{keyword}' в комментариях к Reels;\n"
                    f"- И начни менять свою жизнь прямо сейчас!")
-    pdf.multi_cell(0, 5, clean_text(cta_bullets), 0, 'C')
+    pdf.multi_cell(CONTENT_W, 5, clean_text(cta_bullets), 0, 'C')
     pdf.ln(4)
     
-    btn_w = 65
-    btn_h = 10
-    btn_x = (210 - btn_w) / 2
+    btn_w = 60
+    btn_h = 9
+    btn_x = (W - btn_w) / 2
     btn_y = pdf.get_y()
     
     pdf.set_fill_color(*c_dark)
-    pdf.rect(btn_x, btn_y, btn_w, btn_h, 'F', round_corners=True, corner_radius=5)
+    pdf.rect(btn_x, btn_y, btn_w, btn_h, 'F', round_corners=True, corner_radius=4.5)
     
-    pdf.set_y(btn_y + 2)
-    pdf.set_font('Arial', 'B', 10)
+    pdf.set_y(btn_y + 1.5)
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('Arial', 'B', 9)
     pdf.set_text_color(255, 255, 255)
-    pdf.cell(0, 6, clean_text("Начать преображение"), 0, 1, 'C')
+    pdf.cell(CONTENT_W, 6, clean_text("Начать преображение"), 0, 1, 'C')
     
-    pdf.set_y(btn_y + 12)
-    pdf.set_font('Arial', 'B', 11)
+    pdf.set_y(btn_y + 11)
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('Arial', 'B', 10)
     pdf.set_text_color(*c_accent_dark)
-    pdf.cell(0, 6, clean_text(website.replace("https://", "").replace("http://", "")), 0, 1, 'C')
+    pdf.cell(CONTENT_W, 6, clean_text(website.replace("https://", "").replace("http://", "")), 0, 1, 'C')
     
     pdf.set_y(start_y + 72)
-    pdf.set_font('Arial', 'B', 11)
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('Arial', 'B', 10)
     pdf.set_text_color(*c_accent_dark)
-    pdf.cell(0, 8, clean_text("Ты достойна жить в красивом, сильном и здоровом теле."), 0, 1, 'C')
+    pdf.cell(CONTENT_W, 8, clean_text("Ты достойна жить в красивом, сильном и здоровом теле."), 0, 1, 'C')
     
     pdf.output(output_filename)
     return output_filename
 
 if __name__ == "__main__":
     generate_guide_pdf()
+
 
