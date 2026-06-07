@@ -23,6 +23,37 @@ c_bg_app = (245, 241, 238)      # #F5F1EE - BG_APP (Теплый бежевый 
 c_border_primary = (229, 229, 229) # #E5E5E5 - BORDER_PRIMARY
 c_border_secondary = (209, 209, 209) # #D1D1D1 - BORDER_SECONDARY
 
+def find_system_fonts():
+    """Кроссплатформенный поиск шрифтов: Windows (Arial) → Linux (DejaVuSans)."""
+    # Windows
+    win_regular = r"C:\Windows\Fonts\arial.ttf"
+    win_bold = r"C:\Windows\Fonts\arialbd.ttf"
+    if os.path.exists(win_regular):
+        return win_regular, win_bold if os.path.exists(win_bold) else win_regular
+
+    # Linux / Streamlit Cloud (DejaVuSans — предустановлен в Debian/Ubuntu)
+    linux_paths = [
+        ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
+        ("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"),
+        ("/usr/share/fonts/truetype/freefont/FreeSans.ttf", "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf"),
+    ]
+    for reg, bold in linux_paths:
+        if os.path.exists(reg):
+            return reg, bold if os.path.exists(bold) else reg
+
+    return None, None
+
+def setup_pdf_fonts(pdf):
+    """Настраивает шрифты PDF с кроссплатформенной поддержкой кириллицы."""
+    font_regular, font_bold = find_system_fonts()
+    if font_regular:
+        pdf.add_font('Arial', '', font_regular)
+        pdf.add_font('Arial', 'B', font_bold)
+    else:
+        # Крайний fallback — встроенный Helvetica (без кириллицы, но не упадёт)
+        pass  # fpdf2 имеет встроенный Arial/Helvetica для латиницы
+
+
 class PremiumPDF(FPDF):
     def header(self):
         # Верхний колонтитул на страницах начиная со 2-й (БЕЗ использования курсива по стайлгайду)
@@ -79,19 +110,8 @@ def generate_guide_pdf():
     pdf.set_margins(20, 20, 20)
     pdf.set_auto_page_break(auto=True, margin=20)
     
-    # Подключение Arial шрифтов для поддержки кириллической типографики
-    font_path_regular = r"C:\Windows\Fonts\arial.ttf"
-    font_path_bold = r"C:\Windows\Fonts\arialbd.ttf"
-    
-    if os.path.exists(font_path_regular):
-        pdf.add_font('Arial', '', font_path_regular)
-    else:
-        pdf.add_font('Arial', '', '')
-        
-    if os.path.exists(font_path_bold):
-        pdf.add_font('Arial', 'B', font_path_bold)
-    else:
-        pdf.add_font('Arial', 'B', '')
+    # Подключение шрифтов с кроссплатформенной поддержкой (Windows + Linux/Streamlit Cloud)
+    setup_pdf_fonts(pdf)
 
     # --- СТРАНИЦА 1: ОБЛОЖКА (В БЕЖЕВОМ СТИЛЕ BG_APP) ---
     pdf.add_page()
@@ -433,18 +453,7 @@ def generate_dynamic_pdf(title="БЕРЕЖНОЕ ПРЕОБРАЖЕНИЕ", subt
     pdf.set_margins(20, 20, 20)
     pdf.set_auto_page_break(auto=True, margin=20)
     
-    font_path_regular = r"C:\Windows\Fonts\arial.ttf"
-    font_path_bold = r"C:\Windows\Fonts\arialbd.ttf"
-    
-    if os.path.exists(font_path_regular):
-        pdf.add_font('Arial', '', font_path_regular)
-    else:
-        pdf.add_font('Arial', '', '')
-        
-    if os.path.exists(font_path_bold):
-        pdf.add_font('Arial', 'B', font_path_bold)
-    else:
-        pdf.add_font('Arial', 'B', '')
+    setup_pdf_fonts(pdf)
 
     # --- СТРАНИЦА 1: ОБЛОЖКА ---
     pdf.add_page()
