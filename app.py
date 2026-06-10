@@ -47,11 +47,11 @@ def check_login():
     if "logged_in" not in st.session_state or not st.session_state["logged_in"]:
         # Выводим премиальный экран авторизации строго в стиле бренда (Outfit шрифт, песочно-графитовые тона)
         st.markdown("""
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 30px; text-align: center; max-width: 500px; margin: 100px auto 25px auto; background: #FFFFFF; border-radius: 16px; border: 1px solid #E5E5E5; box-shadow: 0 10px 30px rgba(0,0,0,0.03);">
             <div style="font-size: 56px; margin-bottom: 25px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.05));">🔐</div>
-            <h2 style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #2C2C2C; margin: 0 0 10px 0; letter-spacing: -0.5px; font-size: 26px;">Авторизация</h2>
-            <p style="font-family: 'Outfit', sans-serif; color: #7A6D6B; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5; font-weight: 400;">Введите ваши учетные данные для доступа к ИИ-продюсерам Людмилы Чипизубовой.</p>
+            <h2 style="font-family: 'Roboto', sans-serif; font-weight: 700; color: #2C2C2C; margin: 0 0 10px 0; letter-spacing: -0.5px; font-size: 26px;">Авторизация</h2>
+            <p style="font-family: 'Roboto', sans-serif; color: #7A6D6B; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5; font-weight: 400;">Введите ваши учетные данные для доступа к ИИ-продюсерам Людмилы Чипизубовой.</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -97,6 +97,11 @@ funnel_file = "temp_funnel.md"
 telegram_file = "temp_telegram.md"
 hooks_file = "temp_hooks.md"
 brainstorm_file = "temp_brainstorm_reels.md"
+deep_dive_file = "temp_deep_dive.md"
+figma_guide_file = "temp_figma_guide.md"
+vk_ideas_file = "temp_vk_ideas.md"
+vk_post_file = "temp_vk_post.md"
+vk_image_prompts_file = "temp_vk_image_prompts.md"
 
 # Инициализация session_state для управления полями ввода
 if "app_mode" not in st.session_state:
@@ -132,6 +137,173 @@ import re
 import io
 import requests
 import json
+
+# ═══════════════════════════════════════════════════════════════
+# 🎨 ЕДИНЫЙ БРЕНД-СТИЛЬ ЛЮДМИЛЫ ЧИПИЗУБОВОЙ
+# Все Figma-генерации, CSS и шаблоны берут значения отсюда.
+# При изменении стиля — правьте ТОЛЬКО этот словарь.
+# ═══════════════════════════════════════════════════════════════
+BRAND_STYLE = {
+    "font_family": "Roboto",
+    "font_regular": "Regular",
+    "font_bold": "Bold",
+    "font_medium": "Medium",
+    "bg_warm": "#F5F2EE",
+    "bg_white": "#FDFDFD",
+    "text_primary": "#2C2C2C",
+    "text_accent": "#7A6D6B",
+    "corner_radius": 16,
+    "cta_corner_radius": 40,
+    "slide_width": 1080,
+    "slide_height": 1350,
+    "stories_width": 1080,
+    "stories_height": 1920,
+    "cta_bg": "#2C2C2C",
+    "cta_text_color": "#FFFFFF",
+    "website": "chipizubova.online",
+}
+
+def hex_to_figma_rgb(hex_color):
+    """Конвертирует HEX-цвет в Figma RGB (диапазон 0-1)."""
+    hex_color = hex_color.lstrip('#')
+    r = int(hex_color[0:2], 16) / 255
+    g = int(hex_color[2:4], 16) / 255
+    b = int(hex_color[4:6], 16) / 255
+    return f"{{ r: {r:.3f}, g: {g:.3f}, b: {b:.3f} }}"
+
+def clean_figma_js(code):
+    """Постобработка JS-кода Figma: убирает markdown-обёртки, проверяет async."""
+    if not code:
+        return ""
+    code = code.strip()
+    # Убираем markdown-обёртки ```javascript ... ```
+    if code.startswith("```"):
+        lines = code.split("\n")
+        if lines[-1].strip() == "```":
+            code = "\n".join(lines[1:-1])
+        else:
+            code = "\n".join(lines[1:])
+    code = code.rstrip("`").strip()
+    # Проверяем наличие async-обёртки
+    if "(async" not in code[:80] and "async" not in code[:50]:
+        code = f"(async () => {{\n{code}\n}})();"
+    return code
+
+def generate_slide_preview_html():
+    """Генерирует HTML-превью слайдов в бренд-стиле для отображения в Streamlit."""
+    BS = BRAND_STYLE
+    return f"""
+    <div style="margin: 16px 0;">
+        <div style="font-family: 'Roboto', sans-serif; font-weight: 500; font-size: 13px; color: {BS['text_accent']}; margin-bottom: 12px;">
+            📐 Превью бренд-стиля слайдов ({BS['slide_width']}×{BS['slide_height']}px):
+        </div>
+        <div style="display: flex; gap: 12px; overflow-x: auto; padding: 8px 0;">
+            <div style="min-width: 162px; height: 202px; background: {BS['bg_warm']}; border-radius: 12px; 
+                        display: flex; flex-direction: column; align-items: center; justify-content: center; 
+                        padding: 14px; border: 1px solid #E5E5E5; flex-shrink: 0;">
+                <div style="font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 13px; 
+                            color: {BS['text_primary']}; text-align: center; margin-bottom: 6px;">📖 Обложка</div>
+                <div style="width: 70%; height: 8px; background: {BS['text_primary']}; border-radius: 4px; margin: 3px 0; opacity: 0.7;"></div>
+                <div style="width: 50%; height: 6px; background: {BS['text_accent']}; border-radius: 4px; margin: 3px 0; opacity: 0.5;"></div>
+            </div>
+            <div style="min-width: 162px; height: 202px; background: {BS['bg_white']}; border-radius: 12px; 
+                        display: flex; flex-direction: column; align-items: flex-start; justify-content: center; 
+                        padding: 14px; border: 1px solid #E5E5E5; flex-shrink: 0;">
+                <div style="font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 11px; 
+                            color: {BS['text_primary']}; margin-bottom: 8px;">📝 Слайд 2</div>
+                <div style="width: 100%; padding: 8px; background: {BS['bg_warm']}; border-radius: 8px; margin: 2px 0;">
+                    <div style="width: 80%; height: 6px; background: {BS['text_primary']}; border-radius: 3px; opacity: 0.3;"></div>
+                </div>
+                <div style="width: 100%; padding: 8px; background: {BS['bg_warm']}; border-radius: 8px; margin: 2px 0;">
+                    <div style="width: 60%; height: 6px; background: {BS['text_primary']}; border-radius: 3px; opacity: 0.3;"></div>
+                </div>
+            </div>
+            <div style="min-width: 162px; height: 202px; background: {BS['bg_white']}; border-radius: 12px; 
+                        display: flex; flex-direction: column; align-items: flex-start; justify-content: center; 
+                        padding: 14px; border: 1px solid #E5E5E5; flex-shrink: 0;">
+                <div style="font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 11px; 
+                            color: {BS['text_primary']}; margin-bottom: 8px;">📝 Слайд 3-4</div>
+                <div style="width: 100%; padding: 8px; background: {BS['bg_warm']}; border-radius: 8px; margin: 2px 0;">
+                    <div style="width: 75%; height: 6px; background: {BS['text_primary']}; border-radius: 3px; opacity: 0.3;"></div>
+                </div>
+                <div style="width: 100%; padding: 8px; background: {BS['bg_warm']}; border-radius: 8px; margin: 2px 0;">
+                    <div style="width: 55%; height: 6px; background: {BS['text_primary']}; border-radius: 3px; opacity: 0.3;"></div>
+                </div>
+            </div>
+            <div style="min-width: 162px; height: 202px; background: {BS['bg_warm']}; border-radius: 12px; 
+                        display: flex; flex-direction: column; align-items: center; justify-content: center; 
+                        padding: 14px; border: 1px solid #E5E5E5; flex-shrink: 0;">
+                <div style="font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 13px; 
+                            color: {BS['text_primary']}; text-align: center; margin-bottom: 10px;">🚀 CTA</div>
+                <div style="background: {BS['cta_bg']}; color: {BS['cta_text_color']}; padding: 5px 14px; 
+                            border-radius: {BS['cta_corner_radius']}px; font-size: 9px; font-family: 'Roboto', sans-serif;
+                            font-weight: 500;">Перейти на\u00a0сайт</div>
+            </div>
+        </div>
+        <div style="font-family: 'Roboto', sans-serif; font-size: 11px; color: {BS['text_accent']}; margin-top: 6px; line-height: 1.5;">
+            ✨ <b>Бренд</b>: {BS['font_family']} · {BS['bg_warm']} / {BS['bg_white']} · Текст {BS['text_primary']} · Акцент {BS['text_accent']} · r={BS['corner_radius']}px
+        </div>
+    </div>
+    """
+
+def get_brand_prompt_block():
+    """Возвращает строку с описанием бренд-стиля для промптов агентов."""
+    BS = BRAND_STYLE
+    return (
+        f"Бренд-стиль Людмилы Чипизубовой:\\n"
+        f"- Шрифт: {BS['font_family']} (Google Fonts) — загружать через "
+        f"figma.loadFontAsync({{family:\"{BS['font_family']}\", style:\"{BS['font_regular']}\"}}), "
+        f"{{family:\"{BS['font_family']}\", style:\"{BS['font_bold']}\"}} и "
+        f"{{family:\"{BS['font_family']}\", style:\"{BS['font_medium']}\"}}\\n"
+        f"- Фон слайдов: {BS['bg_warm']} (тёплый песочный) и {BS['bg_white']} (белый)\\n"
+        f"- Цвет текста: {BS['text_primary']} (графитовый)\\n"
+        f"- Акцентный цвет: {BS['text_accent']} (тёплый серый)\\n"
+        f"- Скругления углов: cornerRadius = {BS['corner_radius']}\\n"
+        f"- Кнопка CTA: фон {BS['cta_bg']}, текст белый, cornerRadius = {BS['cta_corner_radius']}\\n"
+        f"- Размер слайда: {BS['slide_width']}×{BS['slide_height']} (Instagram portrait)\\n"
+        f"- Используй неразрывные пробелы \\\\xa0 после однобуквенных предлогов (в, с, и, а, у, о, на, к)\\n"
+        f"- CTA текст: \"Перейти на\\xa0сайт\" → {BS['website']}"
+    )
+
+def create_figma_guide_task_description(topic, website, slide_context=""):
+    """Генерирует единый промпт для задачи Figma-гайда (дедупликация)."""
+    BS = BRAND_STYLE
+    brand_block = get_brand_prompt_block()
+    return (
+        f"На основе сгенерированного контента для темы '{topic}', создай ПОЛНЫЙ готовый JavaScript-код для Figma Console.\\n"
+        f"\\n"
+        f"Код должен создавать 5 брендированных слайдов гайда ({BS['slide_width']}×{BS['slide_height']} px, Instagram portrait):\\n"
+        f"\\n"
+        f"**Слайд 1 — Обложка:**\\n"
+        f"- Фон: {BS['bg_warm']} (тёплый песочный)\\n"
+        f"- Крупный заголовок гайда (шрифт {BS['font_family']} Bold, 64px, цвет {BS['text_primary']})\\n"
+        f"- Подзаголовок ({BS['font_family']} Regular, 28px, цвет {BS['text_accent']})\\n"
+        f"- Декоративная линия акцентного цвета (ширина 120px, высота 4px, цвет {BS['text_accent']})\\n"
+        f"\\n"
+        f"**Слайды 2-4 — Содержательные:**\\n"
+        f"- Фон: {BS['bg_white']} (белый)\\n"
+        f"- Заголовок секции ({BS['font_family']} Bold, 40px, {BS['text_primary']})\\n"
+        f"- Нумерованные блоки с эмодзи-иконками и текстом ({BS['font_family']} Regular, 24px, {BS['text_primary']})\\n"
+        f"- Каждый блок в контейнере: cornerRadius={BS['corner_radius']}, фон {BS['bg_warm']}, padding 24px\\n"
+        f"- РЕАЛЬНОЕ полезное содержание из лид-магнита (НЕ плейсхолдеры!)\\n"
+        f"{slide_context}"
+        f"\\n"
+        f"**Слайд 5 — CTA:**\\n"
+        f"- Фон: {BS['bg_warm']}\\n"
+        f"- Мотивирующий текст ({BS['font_family']} Bold, 36px, {BS['text_primary']})\\n"
+        f"- CTA кнопка: фон {BS['cta_bg']}, текст 'Перейти на\\xa0сайт' {BS['cta_text_color']}, cornerRadius={BS['cta_corner_radius']}\\n"
+        f"- Ссылка: {website}\\n"
+        f"\\n"
+        f"**Технические требования к коду:**\\n"
+        f"- Обёртка: (async () => {{ ... }})();\\n"
+        f"- Загрузка шрифтов: await figma.loadFontAsync({{family:'{BS['font_family']}', style:'{BS['font_regular']}'}});, Bold и Medium\\n"
+        f"- Каждый слайд = figma.createFrame() с resize({BS['slide_width']}, {BS['slide_height']})\\n"
+        f"- Слайды расположены горизонтально с отступом: frame.x = index * {BS['slide_width'] + 120}\\n"
+        f"- Все текстовые ноды через figma.createText() с правильными fills, fontSize, fontName\\n"
+        f"- Используй '\\\\u00a0' после однобуквенных предлогов\\n"
+        f"- В конце: figma.viewport.scrollAndZoomIntoView(figma.currentPage.children);\\n"
+        f"- Выдай ТОЛЬКО JavaScript-код без пояснений, без markdown-обёртки."
+    )
 
 def extract_speech(text):
     if not text:
@@ -171,43 +343,161 @@ def extract_hooks(text):
     return [h[:100] for h in hooks]
 
 def generate_scripter_code(hooks, tone, website):
+    BS = BRAND_STYLE
     hooks_js_array = json.dumps(hooks, ensure_ascii=False)
-    code = f"""// Figma Scripter: Автоматическое создание слайдов-историй для Людмилы
-const slides = {hooks_js_array};
+    bg_warm_rgb = hex_to_figma_rgb(BS["bg_warm"])
+    bg_white_rgb = hex_to_figma_rgb(BS["bg_white"])
+    text_rgb = hex_to_figma_rgb(BS["text_primary"])
+    accent_rgb = hex_to_figma_rgb(BS["text_accent"])
+    cta_bg_rgb = hex_to_figma_rgb(BS["cta_bg"])
+    W = BS["stories_width"]
+    H = BS["stories_height"]
+    code = f"""// Figma Scripter: Брендированные Stories-слайды для Людмилы Чипизубовой
+// Шрифт: {BS['font_family']} | Фон: {BS['bg_warm']} | Текст: {BS['text_primary']}
+(async () => {{
+  const fontBold = {{ family: "{BS['font_family']}", style: "{BS['font_bold']}" }};
+  const fontRegular = {{ family: "{BS['font_family']}", style: "{BS['font_regular']}" }};
+  await figma.loadFontAsync(fontBold);
+  await figma.loadFontAsync(fontRegular);
 
-const font = {{ family: "Arial", style: "Bold" }};
-figma.loadFontAsync(font).then(() => {{
+  const slides = {hooks_js_array};
+  const W = {W};
+  const H = {H};
+
+  // === Слайд 0: Обложка ===
+  const cover = figma.createFrame();
+  cover.name = "Обложка";
+  cover.resize(W, H);
+  cover.x = 0;
+  cover.y = 0;
+  cover.fills = [{{ type: 'SOLID', color: {bg_warm_rgb} }}];
+
+  const coverTitle = figma.createText();
+  coverTitle.fontName = fontBold;
+  coverTitle.characters = "Людмила\\u00a0Чипизубова";
+  coverTitle.fontSize = 56;
+  coverTitle.lineHeight = {{ value: 68, unit: 'PIXELS' }};
+  coverTitle.fills = [{{ type: 'SOLID', color: {text_rgb} }}];
+  coverTitle.resize(900, 200);
+  coverTitle.x = 90;
+  coverTitle.y = 700;
+  cover.appendChild(coverTitle);
+
+  const coverSub = figma.createText();
+  coverSub.fontName = fontRegular;
+  coverSub.characters = "Фитнес-мотивация и\\u00a0советы";
+  coverSub.fontSize = 28;
+  coverSub.fills = [{{ type: 'SOLID', color: {accent_rgb} }}];
+  coverSub.resize(900, 80);
+  coverSub.x = 90;
+  coverSub.y = 900;
+  cover.appendChild(coverSub);
+
+  // Декоративная линия
+  const line = figma.createRectangle();
+  line.resize(120, 4);
+  line.x = 90;
+  line.y = 870;
+  line.cornerRadius = 2;
+  line.fills = [{{ type: 'SOLID', color: {accent_rgb} }}];
+  cover.appendChild(line);
+
+  figma.currentPage.appendChild(cover);
+
+  // === Слайды с хуками ===
   slides.forEach((text, index) => {{
-    // Создаем фрейм под Stories (1080x1920)
     const frame = figma.createFrame();
     frame.name = `Слайд ${{index + 1}}`;
-    frame.resize(1080, 1920);
-    frame.x = index * 1200;
+    frame.resize(W, H);
+    frame.x = (index + 1) * (W + 120);
     frame.y = 0;
-    
-    // Фирменный бежевый фон #F5F1EE
-    frame.fills = [{{ type: 'SOLID', color: {{ r: 0.96, g: 0.94, b: 0.93 }} }}];
-    
-    // Текстовый блок с хуком
+    frame.fills = [{{ type: 'SOLID', color: {bg_white_rgb} }}];
+
+    // Номер слайда
+    const numNode = figma.createText();
+    numNode.fontName = fontBold;
+    numNode.characters = `0${{index + 1}}`;
+    numNode.fontSize = 120;
+    numNode.fills = [{{ type: 'SOLID', color: {bg_warm_rgb} }}];
+    numNode.x = 70;
+    numNode.y = 180;
+    frame.appendChild(numNode);
+
+    // Карточка с контентом
+    const card = figma.createFrame();
+    card.resize(W - 120, 800);
+    card.x = 60;
+    card.y = 500;
+    card.cornerRadius = {BS['corner_radius']};
+    card.fills = [{{ type: 'SOLID', color: {bg_warm_rgb} }}];
+
     const textNode = figma.createText();
-    textNode.fontName = font;
+    textNode.fontName = fontBold;
     textNode.characters = text;
-    textNode.fontSize = 64;
-    textNode.lineHeight = {{ value: 80, unit: 'PIXELS' }};
-    
-    // Фирменный графитовый цвет #2C2C2C
-    textNode.fills = [{{ type: 'SOLID', color: {{ r: 0.17, g: 0.17, b: 0.17 }} }}];
-    
-    textNode.resize(900, 1000);
-    textNode.x = 90;
-    textNode.y = 450;
-    
-    frame.appendChild(textNode);
+    textNode.fontSize = 48;
+    textNode.lineHeight = {{ value: 64, unit: 'PIXELS' }};
+    textNode.fills = [{{ type: 'SOLID', color: {text_rgb} }}];
+    textNode.resize(W - 200, 700);
+    textNode.x = 40;
+    textNode.y = 50;
+    card.appendChild(textNode);
+
+    frame.appendChild(card);
     figma.currentPage.appendChild(frame);
   }});
+
+  // === CTA-слайд ===
+  const ctaFrame = figma.createFrame();
+  ctaFrame.name = "CTA";
+  ctaFrame.resize(W, H);
+  ctaFrame.x = (slides.length + 1) * (W + 120);
+  ctaFrame.y = 0;
+  ctaFrame.fills = [{{ type: 'SOLID', color: {bg_warm_rgb} }}];
+
+  const ctaText = figma.createText();
+  ctaText.fontName = fontBold;
+  ctaText.characters = "Готовы к\\u00a0переменам?\\nНачни сегодня! 💪";
+  ctaText.fontSize = 52;
+  ctaText.lineHeight = {{ value: 68, unit: 'PIXELS' }};
+  ctaText.fills = [{{ type: 'SOLID', color: {text_rgb} }}];
+  ctaText.resize(900, 300);
+  ctaText.x = 90;
+  ctaText.y = 600;
+  ctaFrame.appendChild(ctaText);
+
+  // CTA кнопка
+  const btn = figma.createFrame();
+  btn.resize(500, 80);
+  btn.x = 290;
+  btn.y = 1100;
+  btn.cornerRadius = {BS['cta_corner_radius']};
+  btn.fills = [{{ type: 'SOLID', color: {cta_bg_rgb} }}];
+
+  const btnText = figma.createText();
+  btnText.fontName = fontBold;
+  btnText.characters = "Перейти на\\u00a0сайт →";
+  btnText.fontSize = 28;
+  btnText.fills = [{{ type: 'SOLID', color: {{ r: 1, g: 1, b: 1 }} }}];
+  btnText.x = 120;
+  btnText.y = 22;
+  btn.appendChild(btnText);
+  ctaFrame.appendChild(btn);
+
+  // Ссылка
+  const urlText = figma.createText();
+  urlText.fontName = fontRegular;
+  urlText.characters = "{website}";
+  urlText.fontSize = 22;
+  urlText.fills = [{{ type: 'SOLID', color: {accent_rgb} }}];
+  urlText.x = 350;
+  urlText.y = 1210;
+  ctaFrame.appendChild(urlText);
+
+  figma.currentPage.appendChild(ctaFrame);
+
   figma.viewport.scrollAndZoomIntoView(figma.currentPage.children);
-  console.log("Фирменные фреймы успешно созданы в Figma!");
-}});
+  console.log("✅ Брендированные Stories-фреймы ({BS['font_family']}) успешно созданы!");
+}})();
 """
     return code
 
@@ -309,16 +599,16 @@ def save_calendar(events):
 
 # Кастомные стили CSS для премиального SaaS внешнего вида
 st.markdown("""
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
     /* Глобальный премиальный шрифт (исключая служебные иконки) */
     html, body, p, label, .stMarkdown, .stButton>button, .stTextInput input, .stTextArea textarea, .stSelectbox [data-baseweb="select"] {
-        font-family: 'Outfit', sans-serif !important;
+        font-family: 'Roboto', sans-serif !important;
         color: #2C2C2C !important;
     }
     
     h1, h2, h3, h4, h5, h6 {
-        font-family: 'Outfit', sans-serif !important;
+        font-family: 'Roboto', sans-serif !important;
         color: #1A1A1A !important;
     }
     
@@ -583,7 +873,12 @@ if history_list:
                 "funnel_data": funnel_file,
                 "telegram_data": telegram_file,
                 "hooks_data": hooks_file,
-                "brainstorm_data": brainstorm_file
+                "brainstorm_data": brainstorm_file,
+                "deep_dive_data": deep_dive_file,
+                "figma_guide_data": figma_guide_file,
+                "vk_ideas_data": vk_ideas_file,
+                "vk_post_data": vk_post_file,
+                "vk_image_prompts_data": vk_image_prompts_file
             }
             
             for key, filename in file_mapping.items():
@@ -615,7 +910,7 @@ if history_list:
                 os.remove(history_file)
             except:
                 pass
-        for filename in [analyst_file, writer_file, reels_file, funnel_file, telegram_file, hooks_file, brainstorm_file]:
+        for filename in [analyst_file, writer_file, reels_file, funnel_file, telegram_file, hooks_file, brainstorm_file, deep_dive_file, figma_guide_file, vk_ideas_file, vk_post_file, vk_image_prompts_file]:
             if os.path.exists(filename):
                 try:
                     os.remove(filename)
@@ -642,7 +937,8 @@ with generator_tab:
         "🗣️ Сценарий Продающего Прямого Эфира / Вебинара",
         "💡 Брейншторм 10 вирусных идей для Reels",
         "🥗 Фитнес-Рецепт + Reels-Сценарий (ПП под тренировку)",
-        "⚡ Быстрый А/Б Тест Хуков"
+        "⚡ Быстрый А/Б Тест Хуков",
+        "📘 Пост для ВКонтакте (Текст + Карусель + Промпт для фото)"
     ]
     mode = st.selectbox(
         "Режим работы ИИ-агентов",
@@ -743,6 +1039,20 @@ with generator_tab:
                 key="app_topic_ab_input"
             )
             st.session_state["app_topic_ab"] = topic
+        elif mode == "📘 Пост для ВКонтакте (Текст + Карусель + Промпт для фото)":
+            topic = st.text_area(
+                "📘 Тема / ниша поста",
+                placeholder="Например: Как справиться с ленью и начать тренироваться...",
+                height=100
+            )
+            vk_content_type = st.selectbox(
+                "Формат контента",
+                ["Одиночный пост", "Карусель (5-7 слайдов)", "Пост + Карусель"]
+            )
+            vk_goal = st.selectbox(
+                "Цель поста",
+                ["Вовлечение (комменты, репосты)", "Продажа (запись на марафон)", "Экспертность (научные факты)", "Личное / сторителлинг"]
+            )
 
     with col2:
         if mode in ["📝 Полный контент-пак (Пост + Сценарий + Воронка в Директ + А/Б Хуки + Telegram)", "🥗 Фитнес-Рецепт + Reels-Сценарий (ПП под тренировку)"]:
@@ -784,9 +1094,14 @@ with generator_tab:
             telegram_file = "temp_telegram.md"
             hooks_file = "temp_hooks.md"
             brainstorm_file = "temp_brainstorm_reels.md"
+            deep_dive_file = "temp_deep_dive.md"
+            figma_guide_file = "temp_figma_guide.md"
+            vk_ideas_file = "temp_vk_ideas.md"
+            vk_post_file = "temp_vk_post.md"
+            vk_image_prompts_file = "temp_vk_image_prompts.md"
 
             # Удаляем старые временные файлы, если они есть
-            for f in [analyst_file, writer_file, reels_file, funnel_file, telegram_file, hooks_file, brainstorm_file]:
+            for f in [analyst_file, writer_file, reels_file, funnel_file, telegram_file, hooks_file, brainstorm_file, deep_dive_file, figma_guide_file, vk_ideas_file, vk_post_file, vk_image_prompts_file]:
                 if os.path.exists(f):
                     try:
                         os.remove(f)
@@ -824,6 +1139,31 @@ with generator_tab:
                         role='Сценарист Reels и креативный директор',
                         goal='Разрабатывать вирусные идеи и сценарии Reels (до 60 секунд) с визуальной режиссурой, ракурсами и звуками, удерживающие внимание зрителя с первых секунд.',
                         backstory='Вы талантливый продюсер вертикальных видео. Вы знаете все тренды Reels, понимаете психологию удержания внимания и умеете превратить фитнес-совет в зрелищный сценарий.',
+                        llm=llm,
+                        verbose=False,
+                        allow_delegation=False
+                    )
+
+                    deep_dive_expert = Agent(
+                        role='Эксперт по глубокому разбору фитнес-тем',
+                        goal='Создавать исчерпывающие, научно обоснованные разборы фитнес-тем с физиологией, биохимией, эндокринологией и практическими рекомендациями, чтобы тренер могла стать настоящим экспертом в каждой теме.',
+                        backstory='Вы — кандидат медицинских наук, специализирующийся на спортивной физиологии и нутрициологии. Вы умеете объяснять сложнейшие процессы организма простым и увлекательным языком. Ваша задача — дать тренеру Людмиле такой глубокий разбор темы, чтобы она могла уверенно отвечать на ЛЮБЫЕ вопросы подписчиков, разрушать мифы с научной точки зрения и подавать информацию авторитетно.',
+                        llm=llm,
+                        verbose=False,
+                        allow_delegation=False
+                    )
+
+                    figma_guide_creator = Agent(
+                        role='Дизайнер-верстальщик Figma-гайдов',
+                        goal=f'Генерировать готовый к вставке JavaScript-код для Figma Console, который автоматически создаёт брендированные слайды гайда (лид-магнита) в стиле Людмилы Чипизубовой. Шрифт: {BRAND_STYLE["font_family"]}.',
+                        backstory=(
+                            'Вы — опытный дизайнер и разработчик, владеющий Figma Plugin API. Вы генерируете JavaScript-код для Figma Console, '
+                            'который создает профессиональные слайды-гайды.\n'
+                            + get_brand_prompt_block() + '\n'
+                            '- Код должен быть полностью готов к вставке в Figma Console (DevTools) и запуску без модификаций.\n'
+                            '- В начале кода обязательно: (async () => { ... })(); с await для всех асинхронных операций.\n'
+                            '- Создавать 4-6 слайдов: обложка, 2-4 содержательных слайда с нумерованными секциями и иконками, финальный CTA-слайд.'
+                        ),
                         llm=llm,
                         verbose=False,
                         allow_delegation=False
@@ -938,6 +1278,37 @@ with generator_tab:
 
                         tasks_list = [research_task, writing_task, reels_task, funnel_task, hooks_task, telegram_task]
 
+                        # Задача 7: Глубокий разбор темы (подтема для тренера)
+                        deep_dive_task = Task(
+                            description=(
+                                f"Создай ИСЧЕРПЫВАЮЩИЙ глубокий научный разбор темы: '{topic}' для тренера Людмилы Чипизубовой.\n"
+                                f"\n"
+                                f"📚 **Структура разбора:**\n"
+                                f"1. **Введение в тему** — Почему это важно? Какую проблему решаем? Масштаб проблемы (статистика).\n"
+                                f"2. **Физиология и биохимия** — Что РЕАЛЬНО происходит в организме? Какие гормоны, ферменты, процессы задействованы? Объясни механизмы простым языком с аналогиями.\n"
+                                f"3. **Эндокринология (если применимо)** — Как гормональный фон влияет на эту проблему? Особенности для женщин 25-45 лет.\n"
+                                f"4. **ТОП-5 распространённых мифов** — Развенчай мифы с научной аргументацией. Для каждого мифа: что говорят люди → почему это неверно → как на самом деле.\n"
+                                f"5. **Практические рекомендации** — 5-7 конкретных, пошаговых действий. Не общие фразы, а точные инструкции (с граммовками, минутами, упражнениями).\n"
+                                f"6. **Частые вопросы подписчиков (FAQ)** — 5 вопросов, которые точно зададут подписчицы, и готовые экспертные ответы.\n"
+                                f"7. **Научные источники** — 3-5 реальных исследований или научных фактов для авторитетности.\n"
+                                f"\n"
+                                f"Пиши так, чтобы после прочтения Людмила могла провести 30-минутный эфир по этой теме без подготовки."
+                            ),
+                            expected_output="Исчерпывающий научный разбор темы (2000+ слов) с физиологией, мифами, FAQ и практическими рекомендациями.",
+                            agent=deep_dive_expert,
+                            output_file=deep_dive_file
+                        )
+                        tasks_list.append(deep_dive_task)
+
+                        # Задача 8: Генерация Figma-кода для гайда (лид-магнита)
+                        figma_guide_task = Task(
+                            description=create_figma_guide_task_description(topic, website),
+                            expected_output=f"Полный JavaScript-код для Figma Console ({BRAND_STYLE['font_family']}), готовый к вставке и запуску, создающий 5 брендированных слайдов гайда.",
+                            agent=figma_guide_creator,
+                            output_file=figma_guide_file
+                        )
+                        tasks_list.append(figma_guide_task)
+
                     elif mode == "🔥 Психологический прогрев для Stories (Запуск фитнес-курса)":
                         research_task = Task(
                             description=f"Проанализируй психологические барьеры, возражения и боли аудитории, мешающие им купить фитнес-программу по теме: '{topic}'. Выдели 5 ключевых возражений (например, нет времени, боюсь сорваться, пробовала и не вышло) и предложи пути их снятия через экспертность.",
@@ -985,6 +1356,30 @@ with generator_tab:
                         
                         tasks_list = [research_task, writing_task, reels_task]
 
+                        # Глубокий разбор темы для тренера
+                        deep_dive_task = Task(
+                            description=(
+                                f"Создай ИСЧЕРПЫВАЮЩИЙ глубокий научный разбор темы Stories-прогрева: '{topic}'.\n"
+                                f"Структура: 1) Физиология и психология проблемы, 2) Почему стандартные подходы не работают, "
+                                f"3) ТОП-5 мифов с научным развенчанием, 4) 5-7 практических рекомендаций с конкретикой, "
+                                f"5) FAQ — 5 вопросов подписчиц с экспертными ответами, 6) 3-5 научных источников.\n"
+                                f"Пиши так, чтобы Людмила могла провести 30-минутный эфир по этой теме."
+                            ),
+                            expected_output="Исчерпывающий научный разбор темы (2000+ слов).",
+                            agent=deep_dive_expert,
+                            output_file=deep_dive_file
+                        )
+                        tasks_list.append(deep_dive_task)
+
+                        # Figma-код для гайда
+                        figma_guide_task = Task(
+                            description=create_figma_guide_task_description(topic, website),
+                            expected_output=f"Полный JavaScript-код для Figma Console ({BRAND_STYLE['font_family']}).",
+                            agent=figma_guide_creator,
+                            output_file=figma_guide_file
+                        )
+                        tasks_list.append(figma_guide_task)
+
                     elif mode == "🗣️ Сценарий Продающего Прямого Эфира / Вебинара":
                         research_task = Task(
                             description=f"Составь подробную структуру выступления и 3 главных смысловых тезиса для прямого эфира по теме: '{topic}'. Выдели основные боли, которые нужно затронуть в первые 10 минут, чтобы зрители не расходились.",
@@ -1028,6 +1423,30 @@ with generator_tab:
                         )
                         
                         tasks_list = [research_task, writing_task, reels_task]
+
+                        # Глубокий разбор темы для тренера
+                        deep_dive_task = Task(
+                            description=(
+                                f"Создай ИСЧЕРПЫВАЮЩИЙ глубокий научный разбор темы эфира: '{topic}'.\n"
+                                f"Структура: 1) Физиология и биохимия проблемы, 2) Эндокринология для женщин 25-45, "
+                                f"3) ТОП-5 мифов с научным развенчанием, 4) 5-7 практических рекомендаций, "
+                                f"5) FAQ — 5 вопросов зрителей эфира с ответами, 6) 3-5 научных источников.\n"
+                                f"Пиши так, чтобы Людмила могла уверенно вести 45-минутный эфир."
+                            ),
+                            expected_output="Исчерпывающий научный разбор темы (2000+ слов).",
+                            agent=deep_dive_expert,
+                            output_file=deep_dive_file
+                        )
+                        tasks_list.append(deep_dive_task)
+
+                        # Figma-код для гайда
+                        figma_guide_task = Task(
+                            description=create_figma_guide_task_description(topic, website),
+                            expected_output=f"Полный JavaScript-код для Figma Console ({BRAND_STYLE['font_family']}).",
+                            agent=figma_guide_creator,
+                            output_file=figma_guide_file
+                        )
+                        tasks_list.append(figma_guide_task)
 
                     elif mode == "💡 Брейншторм 10 вирусных идей для Reels":
                         # Режим Брейншторма!
@@ -1075,6 +1494,20 @@ with generator_tab:
                         )
 
                         tasks_list = [research_task, writing_task, reels_task]
+
+                        # Глубокий разбор ниши для брейншторма
+                        deep_dive_task = Task(
+                            description=(
+                                f"Создай глубокий научный разбор ниши '{topic}' для тренера Людмилы.\n"
+                                f"Покажи общую картину: физиология, биохимия, психология, эндокринология.\n"
+                                f"ТОП-10 заблуждений в этой нише. Практические рекомендации. FAQ подписчиц.\n"
+                                f"Этот разбор поможет тренеру глубоко понимать все 10 тем из брейншторма."
+                            ),
+                            expected_output="Глубокий научный разбор ниши (2000+ слов).",
+                            agent=deep_dive_expert,
+                            output_file=deep_dive_file
+                        )
+                        tasks_list.append(deep_dive_task)
 
                     elif mode == "🥗 Фитнес-Рецепт + Reels-Сценарий (ПП под тренировку)":
                         # Режим кулинарного Reels
@@ -1129,6 +1562,32 @@ with generator_tab:
 
                         tasks_list = [research_task, writing_task, reels_task]
 
+                        # Глубокий нутрициологический разбор
+                        deep_dive_task = Task(
+                            description=(
+                                f"Создай ИСЧЕРПЫВАЮЩИЙ нутрициологический разбор рецепта и темы: '{topic}'.\n"
+                                f"Структура: 1) Биохимия усвоения ключевых нутриентов, 2) Роль каждого макроэлемента в восстановлении, "
+                                f"3) ТОП-5 мифов о питании в этой теме, 4) Оптимальные окна питания, "
+                                f"5) FAQ подписчиц с ответами, 6) Научные источники."
+                            ),
+                            expected_output="Исчерпывающий нутрициологический разбор (2000+ слов).",
+                            agent=deep_dive_expert,
+                            output_file=deep_dive_file
+                        )
+                        tasks_list.append(deep_dive_task)
+
+                        # Figma-код для кулинарного гайда
+                        figma_guide_task = Task(
+                            description=create_figma_guide_task_description(
+                                topic, website, 
+                                "- Слайд 2: ингредиенты с иконками. Слайд 3: пошаговые шаги приготовления. Слайд 4: нутрициологическая польза.\n"
+                            ),
+                            expected_output=f"Полный JavaScript-код для Figma Console ({BRAND_STYLE['font_family']}).",
+                            agent=figma_guide_creator,
+                            output_file=figma_guide_file
+                        )
+                        tasks_list.append(figma_guide_task)
+
                     elif mode == "⚡ Быстрый А/Б Тест Хуков":
                         # Режим А/Б тестов
                         research_task = Task(
@@ -1171,10 +1630,107 @@ with generator_tab:
 
                         tasks_list = [research_task, writing_task, reels_task]
 
+                        # Глубокий разбор темы хуков
+                        deep_dive_task = Task(
+                            description=(
+                                f"Создай глубокий научный разбор темы: '{topic}' для тренера Людмилы.\n"
+                                f"Физиология, биохимия, мифы (ТОП-5), практические рекомендации, FAQ подписчиц, научные источники.\n"
+                                f"Пиши так, чтобы после прочтения Людмила могла уверенно говорить на эту тему."
+                            ),
+                            expected_output="Исчерпывающий научный разбор (2000+ слов).",
+                            agent=deep_dive_expert,
+                            output_file=deep_dive_file
+                        )
+                        tasks_list.append(deep_dive_task)
+
+                    elif mode == "📘 Пост для ВКонтакте (Текст + Карусель + Промпт для фото)":
+                        # Режим ВКонтакте
+                        vk_content_type_val = vk_content_type if 'vk_content_type' in dir() else "Одиночный пост"
+                        vk_goal_val = vk_goal if 'vk_goal' in dir() else "Вовлечение"
+                        
+                        carousel_instruction = ""
+                        if "Карусель" in vk_content_type_val:
+                            carousel_instruction = """\n\nТАКЖЕ СОЗДАЙ КАРУСЕЛЬ из 5-7 слайдов:
+- Слайд 1: Обложка — цепляющий заголовок + подзаголовок
+- Слайды 2-6: Контент (1 ключевая мысль = 1 слайд, кратко и ёмко)
+- Последний слайд: CTA — подписка / запись / комментарий
+
+Оформи каждый слайд отдельным блоком с пометкой [СЛАЙД N]."""
+                        
+                        research_task = Task(
+                            description=f"""Проанализируй тему '{topic}' для поста ВКонтакте.
+
+Предложи 5 идей постов. Для каждой идеи укажи:
+1. Заголовок (цепляющий, для ленты ВК)
+2. Угол подачи (экспертный / личный / провокационный / сторителлинг)
+3. Формат (одиночный пост / карусель / пост + опрос)
+4. Почему зайдёт аудитории
+
+Ниша: фитнес, здоровое питание, бережное преображение.
+Бренд: Людмила Чипизубова, chipizubova.online
+Цель: {vk_goal_val}
+
+{BRAND_STYLE.get('description', '')}""",
+                            expected_output="5 детальных идей для постов ВКонтакте с заголовками, углами подачи и обоснованием",
+                            agent=analyst,
+                            output_file=vk_ideas_file
+                        )
+                        
+                        writing_task = Task(
+                            description=f"""На основе лучшей идеи из исследования, напиши полный пост для ВКонтакте.
+
+ФОРМАТ ПОСТА ВК (отличия от Instagram):
+- Длина: 2000-4000 символов (ВК позволяет длинные посты)
+- Хештеги: 3-5 релевантных в конце
+- CTA: подписка, комментарий, репост, запись на марафон
+- Стиль: тёплый, экспертный, с научными фактами
+- Структура: хук (первые 2 строки) → проблема → развитие → решение → CTA
+- Эмодзи: умеренно, не перегружай
+- Абзацы: короткие, по 2-3 предложения
+
+Тема: {topic}
+Цель поста: {vk_goal_val}
+Тон: дружелюбный, экспертный
+Бренд: Людмила Чипизубова | chipizubova.online{carousel_instruction}
+
+{BRAND_STYLE.get('description', '')}""",
+                            expected_output="Готовый текст поста для ВКонтакте + текст карусели (если применимо)",
+                            agent=copywriter,
+                            output_file=vk_post_file
+                        )
+                        
+                        image_prompt_task = Task(
+                            description=f"""На основе написанного поста для ВКонтакте, создай промпты для генерации изображений в Nano Banana (AI-генератор изображений).
+
+Для КАЖДОГО изображения напиши:
+1. Название: для чего это изображение (обложка поста / слайд N карусели)
+2. Промпт на английском (50-100 слов): детальное описание — стиль, композиция, цвета, настроение, объекты
+3. Рекомендуемый размер: 1080x1080 (квадрат) или 1080x1350 (вертикаль)
+
+СТИЛЬ БРЕНДА (обязательно включи в каждый промпт):
+- Тёплые бежевые тона (warm beige, cream, #F5F0EB, #8C7369)
+- Минимализм, чистый фон, много воздуха
+- Premium wellness aesthetic
+- БЕЗ текста на изображениях (текст добавляется отдельно)
+- Тематика: фитнес, здоровый образ жизни, уверенность в себе
+- Добавляй в каждый промпт: 'no text, warm beige tones, minimalist, premium aesthetic'
+
+Создай промпты для:
+- 1 основное фото к посту
+{'- 5-7 изображений для слайдов карусели (если карусель)' if 'Карусель' in vk_content_type_val else ''}
+
+Тема поста: {topic}""",
+                            expected_output="Промпты для Nano Banana на английском с рекомендациями по размерам",
+                            agent=reels_creator,
+                            output_file=vk_image_prompts_file
+                        )
+                        
+                        tasks_list = [research_task, writing_task, image_prompt_task]
+
                     # 4. Запуск процесса
-                    status.write("🚀 Запуск симуляции ИИ-агентов (может занять около 1-1.5 минут)...")
+                    status.write("🚀 Запуск симуляции ИИ-агентов (может занять около 1.5-2.5 минут)...")
                     crew = Crew(
-                        agents=[analyst, copywriter, reels_creator],
+                        agents=[analyst, copywriter, reels_creator, deep_dive_expert, figma_guide_creator],
                         tasks=tasks_list,
                         process=Process.sequential,
                         verbose=False
@@ -1208,7 +1764,12 @@ with generator_tab:
                             ("funnel_data", funnel_file),
                             ("telegram_data", telegram_file),
                             ("hooks_data", hooks_file),
-                            ("brainstorm_data", brainstorm_file)
+                            ("brainstorm_data", brainstorm_file),
+                            ("deep_dive_data", deep_dive_file),
+                            ("figma_guide_data", figma_guide_file),
+                            ("vk_ideas_data", vk_ideas_file),
+                            ("vk_post_data", vk_post_file),
+                            ("vk_image_prompts_data", vk_image_prompts_file)
                         ]:
                             if os.path.exists(fpath):
                                 with open(fpath, "r", encoding="utf-8") as f:
@@ -1251,7 +1812,7 @@ with generator_tab:
 
     # Отображение результатов (вынесено за пределы кнопки запуска для персистентности)
     has_results = False
-    for fpath in [analyst_file, writer_file, reels_file, funnel_file, telegram_file, hooks_file, brainstorm_file]:
+    for fpath in [analyst_file, writer_file, reels_file, funnel_file, telegram_file, hooks_file, brainstorm_file, deep_dive_file, figma_guide_file, vk_ideas_file, vk_post_file, vk_image_prompts_file]:
         if os.path.exists(fpath):
             has_results = True
             break
@@ -1267,6 +1828,8 @@ with generator_tab:
         telegram_data = ""
         hooks_data = ""
         brainstorm_data = ""
+        deep_dive_data = ""
+        figma_guide_data = ""
 
         if os.path.exists(analyst_file):
             with open(analyst_file, "r", encoding="utf-8") as f:
@@ -1296,6 +1859,14 @@ with generator_tab:
             with open(brainstorm_file, "r", encoding="utf-8") as f:
                 brainstorm_data = clean_html(f.read())
 
+        if os.path.exists(deep_dive_file):
+            with open(deep_dive_file, "r", encoding="utf-8") as f:
+                deep_dive_data = clean_html(f.read())
+
+        if os.path.exists(figma_guide_file):
+            with open(figma_guide_file, "r", encoding="utf-8") as f:
+                figma_guide_data = clean_html(f.read())
+
         # Отрисовка вкладок в зависимости от режима
         if mode == "📝 Полный контент-пак (Пост + Сценарий + Воронка в Директ + А/Б Хуки + Telegram)":
             tabs = st.tabs([
@@ -1304,6 +1875,8 @@ with generator_tab:
                 "💬 Воронка в Директ", 
                 "⚡ А/Б Хуки (Экран)", 
                 "✈️ Пост для Telegram", 
+                "📚 Разбор темы",
+                "🎨 Figma Гайд-код",
                 "🔬 Исследование",
                 "📈 Анализ виральности"
             ])
@@ -1710,12 +2283,31 @@ with generator_tab:
                                     st.error(f"Ошибка TTS: {str(ex)}")
 
             with tabs[5]:
+                st.markdown("### 📚 Глубокий разбор темы для тренера")
+                st.markdown("Этот раздел создан специально для подготовки Людмилы к записи контента. Здесь собрана вся научная база, мифы, FAQ и практические рекомендации.")
+                st.markdown("---")
+                st.markdown(deep_dive_data if deep_dive_data else "Глубокий разбор темы отсутствует. Он будет создан при следующей генерации.")
+                if deep_dive_data:
+                    st.download_button("📥 Скачать разбор темы (.md)", data=deep_dive_data, file_name="deep_dive_topic.md", use_container_width=True)
+
+            with tabs[6]:
+                st.markdown(f"### 🎨 Figma Console: Код для генерации гайда (шрифт: {BRAND_STYLE['font_family']})")
+                st.markdown(f"Скопируйте этот JavaScript-код и вставьте его в **Figma Console** (DevTools → Console). Он автоматически создаст 5 брендированных слайдов гайда в стиле Людмилы (шрифт **{BRAND_STYLE['font_family']}**)! 🚀")
+                st.markdown(generate_slide_preview_html(), unsafe_allow_html=True)
+                if figma_guide_data:
+                    clean_code = clean_figma_js(figma_guide_data)
+                    st.code(clean_code, language="javascript")
+                    st.download_button("📥 Скачать Figma-код (.js)", data=clean_code, file_name="figma_guide_code.js", use_container_width=True)
+                else:
+                    st.info("Figma-код будет сгенерирован при следующей генерации контент-пака.")
+
+            with tabs[7]:
                 st.markdown("### 🔬 Научный разбор темы от Аналитика")
                 st.markdown(report_data if report_data else "Аналитический отчет отсутствует")
                 if report_data:
                     st.download_button("📥 Скачать отчет аналитика (.md)", data=report_data, file_name="analyst_report.md", use_container_width=True)
 
-            with tabs[6]:
+            with tabs[8]:
                 st.markdown("### 📈 ИИ-Анализатор виральности контента")
                 st.markdown("Нажмите кнопку ниже, чтобы запустить глубокий нейросетевой анализ вашего Instagram-поста и сценария Reels на виральность, силу зацепки (хука) и вовлечение.")
 
@@ -1773,7 +2365,8 @@ with generator_tab:
                 f"## 3. Сценарий Reels с раскадровкой\n{reels_data}\n\n"
                 f"## 4. Воронка в Директ и Лид-магнит\n{funnel_data}\n\n"
                 f"## 5. Варианты А/Б хуков\n{hooks_data}\n\n"
-                f"## 6. Telegram контент\n{telegram_data}"
+                f"## 6. Telegram контент\n{telegram_data}\n\n"
+                f"## 7. Глубокий разбор темы\n{deep_dive_data}"
             )
             with open("instagram_post_result.md", "w", encoding="utf-8") as f:
                 f.write(full_result)
@@ -1782,7 +2375,9 @@ with generator_tab:
             tabs = st.tabs([
                 "🔥 5-дневный Stories Прогрев", 
                 "🎬 Поддерживающий Reels", 
-                "🔬 Анализ возражений ЦА"
+                "🔬 Анализ возражений ЦА",
+                "📚 Разбор темы",
+                "🎨 Figma Гайд-код"
             ])
             
             with tabs[0]:
@@ -1825,8 +2420,24 @@ with generator_tab:
                 st.markdown(report_data if report_data else "Анализ возражений отсутствует")
                 if report_data:
                     st.download_button("📥 Скачать анализ ЦА (.md)", data=report_data, file_name="psychological_analysis.md", use_container_width=True)
+
+            with tabs[3]:
+                st.markdown("### 📚 Глубокий разбор темы для тренера")
+                st.markdown(deep_dive_data if deep_dive_data else "Разбор темы отсутствует.")
+                if deep_dive_data:
+                    st.download_button("📥 Скачать разбор темы (.md)", data=deep_dive_data, file_name="deep_dive_stories.md", use_container_width=True)
+
+            with tabs[4]:
+                st.markdown(f"### 🎨 Figma Console: Код для генерации гайда (шрифт: {BRAND_STYLE['font_family']})")
+                st.markdown(generate_slide_preview_html(), unsafe_allow_html=True)
+                if figma_guide_data:
+                    clean_code = clean_figma_js(figma_guide_data)
+                    st.code(clean_code, language="javascript")
+                    st.download_button("📥 Скачать Figma-код (.js)", data=clean_code, file_name="figma_stories_guide.js", use_container_width=True)
+                else:
+                    st.info("Figma-код будет сгенерирован при следующей генерации.")
                     
-            full_result = f"# Психологический прогрев Stories\n\n## 1. Stories Прогрев\n{post_data}\n\n## 2. Поддерживающий Reels\n{reels_data}\n\n## 3. Анализ возражений ЦА\n{report_data}"
+            full_result = f"# Психологический прогрев Stories\n\n## 1. Stories Прогрев\n{post_data}\n\n## 2. Поддерживающий Reels\n{reels_data}\n\n## 3. Анализ возражений ЦА\n{report_data}\n\n## 4. Глубокий разбор темы\n{deep_dive_data}"
             with open("stories_warmup_result.md", "w", encoding="utf-8") as f:
                 f.write(full_result)
 
@@ -1834,7 +2445,9 @@ with generator_tab:
             tabs = st.tabs([
                 "🗣️ Сценарий Эфира (45 мин)", 
                 "🎬 Промо-Reels эфира", 
-                "🔬 Тезисы и удержание внимания"
+                "🔬 Тезисы и удержание внимания",
+                "📚 Разбор темы",
+                "🎨 Figma Гайд-код"
             ])
             
             with tabs[0]:
@@ -1877,14 +2490,31 @@ with generator_tab:
                 st.markdown(report_data if report_data else "Анализ удержания отсутствует")
                 if report_data:
                     st.download_button("📥 Скачать анализ удержания (.md)", data=report_data, file_name="live_thesis_analysis.md", use_container_width=True)
+
+            with tabs[3]:
+                st.markdown("### 📚 Глубокий разбор темы для тренера")
+                st.markdown(deep_dive_data if deep_dive_data else "Разбор отсутствует.")
+                if deep_dive_data:
+                    st.download_button("📥 Скачать разбор (.md)", data=deep_dive_data, file_name="deep_dive_live.md", use_container_width=True)
+
+            with tabs[4]:
+                st.markdown(f"### 🎨 Figma Console: Код для генерации гайда (шрифт: {BRAND_STYLE['font_family']})")
+                st.markdown(generate_slide_preview_html(), unsafe_allow_html=True)
+                if figma_guide_data:
+                    clean_code = clean_figma_js(figma_guide_data)
+                    st.code(clean_code, language="javascript")
+                    st.download_button("📥 Скачать Figma-код (.js)", data=clean_code, file_name="figma_live_guide.js", use_container_width=True)
+                else:
+                    st.info("Figma-код будет сгенерирован при следующей генерации.")
                     
-            full_result = f"# Сценарий Продающего Эфира\n\n## 1. Сценарий Эфира\n{post_data}\n\n## 2. Промо-Reels\n{reels_data}\n\n## 3. Тезисы и удержание\n{report_data}"
+            full_result = f"# Сценарий Продающего Эфира\n\n## 1. Сценарий Эфира\n{post_data}\n\n## 2. Промо-Reels\n{reels_data}\n\n## 3. Тезисы и удержание\n{report_data}\n\n## 4. Глубокий разбор темы\n{deep_dive_data}"
             with open("live_stream_result.md", "w", encoding="utf-8") as f:
                 f.write(full_result)
 
         elif mode == "💡 Брейншторм 10 вирусных идей для Reels":
             tabs = st.tabs([
                 "💡 10 вирусных идей Reels", 
+                "📚 Разбор ниши",
                 "🔬 Полный отчет исследований"
             ])
 
@@ -1895,6 +2525,12 @@ with generator_tab:
                     st.download_button("📥 Скачать идеи Reels (.md)", data=brainstorm_data, file_name="reels_brainstorm_ideas.md")
 
             with tabs[1]:
+                st.markdown("### 📚 Глубокий разбор ниши для тренера")
+                st.markdown(deep_dive_data if deep_dive_data else "Разбор ниши отсутствует.")
+                if deep_dive_data:
+                    st.download_button("📥 Скачать разбор ниши (.md)", data=deep_dive_data, file_name="deep_dive_brainstorm.md")
+
+            with tabs[2]:
                 st.markdown("### 🔬 Дополнительные материалы исследования")
                 st.markdown("#### 1. Темы от Аналитика:")
                 st.markdown(report_data if report_data else "Отчет отсутствует")
@@ -1902,7 +2538,7 @@ with generator_tab:
                 st.markdown("#### 2. Разработанные хуки и заголовки от Копирайтера:")
                 st.markdown(post_data if post_data else "Отчет отсутствует")
 
-            full_result = f"# Брейншторм 10 идей Reels для темы: {topic}\n\n## Таблица сценариев\n{brainstorm_data}\n\n## 1. Анализ тем от Аналитика\n{report_data}\n\n## 2. Хуки от Копирайтера\n{post_data}"
+            full_result = f"# Брейншторм 10 идей Reels для темы: {topic}\n\n## Таблица сценариев\n{brainstorm_data}\n\n## 1. Анализ тем от Аналитика\n{report_data}\n\n## 2. Хуки от Копирайтера\n{post_data}\n\n## 3. Глубокий разбор ниши\n{deep_dive_data}"
             with open("reels_brainstorm_result.md", "w", encoding="utf-8") as f:
                 f.write(full_result)
 
@@ -1910,7 +2546,9 @@ with generator_tab:
             tabs = st.tabs([
                 "🍳 Сценарий Reels", 
                 "📖 Фитнес-Рецепт", 
-                "🔬 Польза нутрициолога"
+                "🔬 Польза нутрициолога",
+                "📚 Разбор темы",
+                "🎨 Figma Гайд-код"
             ])
 
             with tabs[0]:
@@ -1931,7 +2569,23 @@ with generator_tab:
                 if report_data:
                     st.download_button("📥 Скачать отчет аналитика (.md)", data=report_data, file_name="culinary_analyst_report.md")
 
-            full_result = f"# Вирусный рецепт под тренировку\n\n## 1. Сценарий кулинарного Reels\n{reels_data}\n\n## 2. Пост с рецептом\n{post_data}\n\n## 3. Польза нутрициолога\n{report_data}"
+            with tabs[3]:
+                st.markdown("### 📚 Глубокий нутрициологический разбор")
+                st.markdown(deep_dive_data if deep_dive_data else "Разбор отсутствует.")
+                if deep_dive_data:
+                    st.download_button("📥 Скачать разбор (.md)", data=deep_dive_data, file_name="deep_dive_recipe.md")
+
+            with tabs[4]:
+                st.markdown(f"### 🎨 Figma Console: Код для генерации гайда (шрифт: {BRAND_STYLE['font_family']})")
+                st.markdown(generate_slide_preview_html(), unsafe_allow_html=True)
+                if figma_guide_data:
+                    clean_code = clean_figma_js(figma_guide_data)
+                    st.code(clean_code, language="javascript")
+                    st.download_button("📥 Скачать Figma-код (.js)", data=clean_code, file_name="figma_recipe_guide.js", use_container_width=True)
+                else:
+                    st.info("Figma-код будет сгенерирован при следующей генерации.")
+
+            full_result = f"# Вирусный рецепт под тренировку\n\n## 1. Сценарий кулинарного Reels\n{reels_data}\n\n## 2. Пост с рецептом\n{post_data}\n\n## 3. Польза нутрициолога\n{report_data}\n\n## 4. Глубокий разбор\n{deep_dive_data}"
             with open("reels_recipe_result.md", "w", encoding="utf-8") as f:
                 f.write(full_result)
 
@@ -1939,6 +2593,7 @@ with generator_tab:
             tabs = st.tabs([
                 "⚡ А/Б Хуки и заголовки", 
                 "🎥 Идеи видеоряда", 
+                "📚 Разбор темы",
                 "🔬 Анализ темы"
             ])
 
@@ -1955,14 +2610,70 @@ with generator_tab:
                     st.download_button("📥 Скачать концепты съемок (.md)", data=reels_data, file_name="reels_concepts.md")
 
             with tabs[2]:
+                st.markdown("### 📚 Глубокий разбор темы для тренера")
+                st.markdown(deep_dive_data if deep_dive_data else "Разбор отсутствует.")
+                if deep_dive_data:
+                    st.download_button("📥 Скачать разбор (.md)", data=deep_dive_data, file_name="deep_dive_hooks.md")
+
+            with tabs[3]:
                 st.markdown("### 🔬 Психологический анализ темы")
                 st.markdown(report_data if report_data else "Анализ отсутствует")
                 if report_data:
                     st.download_button("📥 Скачать анализ темы (.md)", data=report_data, file_name="topic_analysis.md")
 
-            full_result = f"# Быстрый А/Б Тест Хуков\n\n## 1. Варианты хуков и заголовков\n{post_data}\n\n## 2. Идеи видеоряда\n{reels_data}\n\n## 3. Анализ темы\n{report_data}"
+            full_result = f"# Быстрый А/Б Тест Хуков\n\n## 1. Варианты хуков и заголовков\n{post_data}\n\n## 2. Идеи видеоряда\n{reels_data}\n\n## 3. Анализ темы\n{report_data}\n\n## 4. Глубокий разбор\n{deep_dive_data}"
             with open("hooks_test_result.md", "w", encoding="utf-8") as f:
                 f.write(full_result)
+
+        elif mode == "📘 Пост для ВКонтакте (Текст + Карусель + Промпт для фото)":
+            tabs = st.tabs([
+                "💡 Идеи постов",
+                "📝 Текст поста",
+                "🎨 Промпты для фото"
+            ])
+            
+            with tabs[0]:  # Идеи
+                vk_ideas_data = ""
+                if os.path.exists(vk_ideas_file):
+                    with open(vk_ideas_file, "r", encoding="utf-8") as f:
+                        vk_ideas_data = f.read()
+                if vk_ideas_data:
+                    st.markdown("### 💡 5 идей для поста ВКонтакте")
+                    st.markdown(vk_ideas_data)
+                    st.download_button("📥 Скачать идеи", vk_ideas_data, file_name="vk_ideas.md", mime="text/markdown", key="dl_vk_ideas")
+                else:
+                    st.info("Идеи появятся после генерации")
+            
+            with tabs[1]:  # Текст поста
+                vk_post_data = ""
+                if os.path.exists(vk_post_file):
+                    with open(vk_post_file, "r", encoding="utf-8") as f:
+                        vk_post_data = f.read()
+                if vk_post_data:
+                    st.markdown("### 📝 Готовый пост для ВКонтакте")
+                    edited_vk = st.text_area("Отредактируй текст поста:", value=vk_post_data, height=500, key="vk_post_edit")
+                    col_a, col_b = st.columns(2)
+                    with col_a:
+                        st.download_button("📥 Скачать пост", edited_vk, file_name="vk_post.md", mime="text/markdown", key="dl_vk_post")
+                    with col_b:
+                        if st.button("📤 Копировать текст", key="copy_vk"):
+                            st.code(edited_vk, language=None)
+                            st.success("Текст выше — скопируйте его!")
+                else:
+                    st.info("Текст поста появится после генерации")
+            
+            with tabs[2]:  # Промпты для фото
+                vk_prompts_data = ""
+                if os.path.exists(vk_image_prompts_file):
+                    with open(vk_image_prompts_file, "r", encoding="utf-8") as f:
+                        vk_prompts_data = f.read()
+                if vk_prompts_data:
+                    st.markdown("### 🎨 Промпты для Nano Banana")
+                    st.markdown(vk_prompts_data)
+                    st.download_button("📥 Скачать промпты", vk_prompts_data, file_name="vk_image_prompts.md", mime="text/markdown", key="dl_vk_prompts")
+                    st.info("💡 Скопируй промпты и вставь в Nano Banana для генерации изображений")
+                else:
+                    st.info("Промпты для фото появятся после генерации")
 
         # 🤖 Интерактивная доработка ИИ
         st.markdown("---")
