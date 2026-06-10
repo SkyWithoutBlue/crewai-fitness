@@ -1040,11 +1040,43 @@ with generator_tab:
             )
             st.session_state["app_topic_ab"] = topic
         elif mode == "📘 Пост для ВКонтакте (Текст + Карусель + Промпт для фото)":
+            if "vk_suggested_topic" not in st.session_state:
+                st.session_state["vk_suggested_topic"] = ""
+            
             topic = st.text_area(
                 "📘 Тема / ниша поста",
+                value=st.session_state.get("vk_suggested_topic", ""),
                 placeholder="Например: Как справиться с ленью и начать тренироваться...",
                 height=100
             )
+            
+            if st.button("🎲 Подобрать темы за меня", key="vk_suggest_topics"):
+                if api_key:
+                    with st.spinner("💡 Генерирую идеи..."):
+                        try:
+                            from crewai import LLM as SuggestLLM
+                            suggest_llm = SuggestLLM(model=model_name, api_key=api_key)
+                            response = suggest_llm.call([
+                                {"role": "system", "content": "Ты — контент-стратег для фитнес-блогера. Отвечай кратко, только список тем."},
+                                {"role": "user", "content": """Предложи 7 актуальных тем для постов ВКонтакте.
+Ниша: фитнес, здоровое питание, бережное преображение, уверенность в себе.
+Бренд: Людмила Чипизубова, chipizubova.online
+
+Для каждой темы укажи:
+- Тема (1 строка)
+- Формат: пост / карусель
+- Цель: вовлечение / продажа / экспертность / сторителлинг
+
+Отвечай в формате нумерованного списка."""}
+                            ])
+                            st.markdown("### 💡 Выбери тему:")
+                            st.markdown(response)
+                            st.info("👆 Скопируй понравившуюся тему и вставь в поле выше")
+                        except Exception as e:
+                            st.error(f"Ошибка: {e}")
+                else:
+                    st.warning("⚠️ Сначала введите API ключ в боковой панели")
+            
             vk_content_type = st.selectbox(
                 "Формат контента",
                 ["Одиночный пост", "Карусель (5-7 слайдов)", "Пост + Карусель"]
